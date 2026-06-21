@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}渠道管理{% include "pagination.html" %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-diagram-3"></i> 渠道管理</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#channelModal" onclick="clearForm()">
+        <i class="bi bi-plus-lg"></i> 添加渠道
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>名称</th><th>编码</th><th>基地址</th><th>认证</th><th>状态</th><th>模型</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for ch in channels %}
+            <tr>
+                <td>{{ ch.name }}</td>
+                <td><code>{{ ch.code }}</code></td>
+                <td><small>{{ ch.base_url }}</small></td>
+                <td><span class="badge bg-info">{{ ch.get_auth_type_display }}</span></td>
+                <td><span class="badge {% if ch.status == 'enabled' %}bg-success{% else %}bg-secondary{% endif %}">{{ ch.get_status_display }}</span></td>
+                <td>{{ ch.api_models.count }}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editChannel({{ ch.id }}, '{{ ch.name|escapejs }}', '{{ ch.code|escapejs }}', '{{ ch.base_url|escapejs }}', '{{ ch.auth_type }}', '{{ ch.access_key|escapejs }}', '{{ ch.secret_key|escapejs }}', '{{ ch.api_key|escapejs }}', '{{ ch.description|escapejs }}', '{{ ch.status }}')"><i class="bi bi-pencil"></i></button>
+                    <form method="post" class="d-inline" onsubmit="return confirm('删除渠道将同时删除其下所有模型，确定？')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="{{ ch.id }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">暂无渠道，请添加</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="channelModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="post" class="modal-content">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="chAction" value="add">
+            <input type="hidden" name="id" id="chId">
+            <div class="modal-header"><h5 class="modal-title" id="chTitle">添加渠道</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">渠道名称 *</label><input name="name" id="chName" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label">渠道编码 *</label><input name="code" id="chCode" class="form-control" required></div>
+                    <div class="col-md-4"><label class="form-label">基础URL *</label><input name="base_url" id="chBaseUrl" class="form-control" required></div>
+                    <div class="col-md-4"><label class="form-label">认证方式</label><select name="auth_type" id="chAuth" class="form-select"><option value="hmac">AK/SK签名</option><option value="bearer">Bearer Token</option></select></div>
+                    <div class="col-md-4"><label class="form-label">状态</label><select name="status" id="chStatus" class="form-select"><option value="enabled">启用</option><option value="disabled">禁用</option></select></div>
+                    <div class="col-md-4"><label class="form-label">AccessKey</label><input name="access_key" id="chAk" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label">SecretKey</label><input name="secret_key" id="chSk" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label">API Key (Bearer)</label><input name="api_key" id="chApiKey" class="form-control" placeholder="Bearer Token"></div>
+                    <div class="col-12"><label class="form-label">描述</label><textarea name="description" id="chDesc" class="form-control" rows="2"></textarea></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-primary">保存</button></div>
+        </form>
+    </div>
+</div>
+
+<script>
+function clearForm() { document.getElementById('chAction').value='add'; document.getElementById('chId').value=''; document.getElementById('chTitle').innerText='添加渠道'; document.getElementById('chName').value=''; document.getElementById('chCode').value=''; document.getElementById('chBaseUrl').value=''; document.getElementById('chAuth').value='hmac'; document.getElementById('chAk').value=''; document.getElementById('chSk').value=''; document.getElementById('chApiKey').value=''; document.getElementById('chDesc').value=''; document.getElementById('chStatus').value='enabled'; }
+function editChannel(id,name,code,url,auth,ak,sk,apikey,desc,status) { document.getElementById('chAction').value='edit'; document.getElementById('chId').value=id; document.getElementById('chTitle').innerText='编辑渠道'; document.getElementById('chName').value=name; document.getElementById('chCode').value=code; document.getElementById('chBaseUrl').value=url; document.getElementById('chAuth').value=auth; document.getElementById('chAk').value=ak; document.getElementById('chSk').value=sk; document.getElementById('chApiKey').value=apikey; document.getElementById('chDesc').value=desc; document.getElementById('chStatus').value=status; new bootstrap.Modal('#channelModal').show(); }
+</script>
+{% include "pagination.html" %}
+{% endblock %}

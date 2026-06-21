@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}敏感词管理{% include "pagination.html" %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-shield-exclamation"></i> 敏感词管理</h4>
+    <div>
+        <form method="post" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <input name="word" class="form-control form-control-sm" placeholder="输入敏感词" required>
+            <select name="level" class="form-select form-select-sm" style="width:100px">
+                <option value="block">拦截</option>
+                <option value="replace">替换</option>
+                <option value="audit">审核</option>
+            </select>
+            <input name="replacement" class="form-control form-control-sm" value="***" style="width:80px" placeholder="替换为">
+            <input name="category" class="form-control form-control-sm" style="width:100px" placeholder="分类">
+            <button class="btn btn-sm btn-primary">添加</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>敏感词</th><th>级别</th><th>替换</th><th>分类</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for w in words %}
+            <tr>
+                <td><code>{{ w.word }}</code></td>
+                <td>
+                    {% if w.level == 'block' %}<span class="badge bg-danger">拦截</span>
+                    {% elif w.level == 'replace' %}<span class="badge bg-warning">替换</span>
+                    {% else %}<span class="badge bg-info">审核</span>
+                    {% endif %}
+                </td>
+                <td>{{ w.replacement }}</td>
+                <td>{{ w.category }}</td>
+                <td>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ w.id }}">
+                        <button class="btn btn-sm {% if w.enabled %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                            {{ w.enabled|yesno:'启用,禁用' }}
+                        </button>
+                    </form>
+                </td>
+                <td>{{ w.created_at|date:"m-d H:i" }}</td>
+                <td>
+                    <form method="post" class="d-inline" onsubmit="return confirm('确定删除？')">
+                        {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ w.id }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">暂无敏感词，在上方添加</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header"><i class="bi bi-info-circle"></i> 过滤规则说明</div>
+    <div class="card-body small">
+        <p><span class="badge bg-danger">拦截</span> 请求直接拒绝，返回 403，不消耗费用</p>
+        <p><span class="badge bg-warning">替换</span> 敏感词替换为指定文本后继续转发</p>
+        <p><span class="badge bg-info">审核</span> 记录命中但不拦截不替换（预留审核流程）</p>
+    </div>
+</div>
+{% include "pagination.html" %}
+{% endblock %}

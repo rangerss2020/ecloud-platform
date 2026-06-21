@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}调用结果{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-check-circle"></i> 调用结果</div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr><td width="100">API名称</td><td>{{ api_model.name }}</td></tr>
+                    <tr><td>响应状态</td><td><span class="badge {% if record.response_state == 'OK' %}bg-success{% else %}bg-danger{% endif %} fs-6">{{ record.response_state }}</span></td></tr>
+                    <tr><td>耗时</td><td>{{ record.duration_ms }} ms</td></tr>
+                    <tr><td>费用</td><td><strong>¥{{ record.cost }}</strong></td></tr>
+                    <tr><td>调用前余额</td><td>¥{{ balance_before }}</td></tr>
+                    <tr><td>调用后余额</td><td>¥{{ record.balance_after }}</td></tr>
+                </table>
+                <div class="d-flex gap-2 mt-3">
+                    <a href="{% url 'api_test' api_model.id %}" class="btn btn-outline-primary">再次调用</a>
+                    <a href="{% url 'gateway_index' %}" class="btn btn-outline-secondary">返回网关</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-code-slash"></i> 响应数据</div>
+            <div class="card-body">
+                <div class="json-preview">{{ response_json }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

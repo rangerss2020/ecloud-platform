@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}代理中心{% endblock %}
+{% block content %}
+
+{% if user.role == 'admin' %}
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="stat-card" style="--accent:#ff9800">
+            <div class="label">代理总数</div>
+            <div class="value">{{ total_agents }}</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="stat-card" style="--accent:#4caf50">
+            <div class="label">会员总数</div>
+            <div class="value">{{ total_members }}</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="stat-card" style="--accent:#2196f3">
+            <div class="label">总佣金</div>
+            <div class="value">¥{{ total_commission }}</div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ff9800">
+            <div class="label">代理等级</div>
+            <div class="value" style="font-size:1.2rem;">L{{ profile.level }} - {{ profile.get_level_display }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#4caf50">
+            <div class="label">累计佣金</div>
+            <div class="value">¥{{ total_commission }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#2196f3">
+            <div class="label">待结算佣金</div>
+            <div class="value">¥{{ pending_commission }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#9c27b0">
+            <div class="label">下级会员</div>
+            <div class="value">{{ sub_count }}</div>
+        </div>
+    </div>
+</div>
+<div class="mb-3">
+    <a href="{% url 'agent_promotion' %}" class="btn btn-warning"><i class="bi bi-megaphone"></i> 推广中心</a>
+    <a href="{% url 'withdrawal_apply' %}" class="btn btn-outline-warning"><i class="bi bi-cash-stack"></i> 提现</a>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-people"></i> {% if user.role == 'admin' %}代理列表{% else %}下级会员{% endif %}</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    {% if user.role == 'admin' %}
+                    <thead><tr><th>用户名</th><th>等级</th><th>佣金比</th><th>累计佣金</th><th>会员数</th><th>操作</th></tr></thead>
+                    <tbody>
+                    {% for a in all_agents %}
+                    <tr>
+                        <td>{{ a.user.username }}</td>
+                        <td>L{{ a.level }}</td>
+                        <td>{{ a.commission_rate }}%</td>
+                        <td>¥{{ a.total_commission }}</td>
+                        <td>{{ a.member_count }}</td>
+                        <td><a href="{% url 'admin_edit_user' a.user.id %}" class="btn btn-sm btn-outline-primary">编辑</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-3" style="color:var(--text-dim)">暂无代理</td></tr>
+                    {% endfor %}
+                    </tbody>
+                    {% else %}
+                    <thead><tr><th>用户名</th><th>余额</th><th>手机号</th><th>注册时间</th></tr></thead>
+                    <tbody>
+                    {% for m in user.sub_members.all|slice:":10" %}
+                    <tr>
+                        <td>{{ m.username }}</td>
+                        <td>¥{{ m.balance }}</td>
+                        <td>{{ m.phone }}</td>
+                        <td>{{ m.created_at|date:"Y-m-d" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center py-3" style="color:var(--text-dim)">暂无下级会员</td></tr>
+                    {% endfor %}
+                    </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+    {% if user.role == 'agent' %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-cash-stack"></i> 佣金记录</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>来源</th><th>订单额</th><th>比例</th><th>佣金</th><th>状态</th></tr></thead>
+                    <tbody>
+                    {% for c in commissions|slice:":10" %}
+                    <tr>
+                        <td>{{ c.from_user.username|default:'-' }}</td>
+                        <td>¥{{ c.order_amount }}</td>
+                        <td>{{ c.commission_rate }}%</td>
+                        <td>¥{{ c.commission_amount }}</td>
+                        <td><span class="badge {% if c.status == 'settled' %}bg-success{% else %}bg-warning{% endif %}">{{ c.get_status_display }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-3" style="color:var(--text-dim)">暂无佣金记录</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if user.role == 'admin' %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-people-fill"></i> 所有会员</span>
+                <a href="{% url 'agent_members' %}" class="btn btn-sm btn-outline-primary">查看全部</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>用户名</th><th>邮箱</th><th>所属代理</th><th>余额</th><th>注册时间</th><th>操作</th></tr></thead>
+                    <tbody>
+                    {% for m in admin_members|slice:":10" %}
+                    <tr>
+                        <td>{{ m.username }}</td>
+                        <td>{{ m.email }}</td>
+                        <td>{{ m.parent_agent.username|default:'无' }}</td>
+                        <td>¥{{ m.balance }}</td>
+                        <td>{{ m.created_at|date:"Y-m-d H:i" }}</td>
+                        <td><a href="{% url 'admin_edit_user' m.id %}" class="btn btn-sm btn-outline-primary">编辑</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-3" style="color:var(--text-dim)">暂无会员</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}账户充值{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-cash-coin"></i> 账户充值</div>
+            <div class="card-body">
+                <div class="alert alert-info">当前余额: <strong>¥{{ user.balance }}</strong></div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">充值金额（元）</label>
+                        <input type="number" name="amount" class="form-control form-control-lg" step="0.01" min="10" placeholder="最低10元" required autofocus>
+                    </div>
+                    <label class="form-label">快捷金额</label>
+                    <div class="row g-2 mb-3">
+                        {% for q in quick_amounts %}
+                        <div class="col">
+                            <button type="button" class="btn w-100 py-2 position-relative"
+                                onclick="document.querySelector('[name=amount]').value='{{ q.amount }}'"
+                                style="background:#111827;border:1px solid rgba(0,229,255,0.15);border-radius:8px;text-align:center;transition:all 0.2s"
+                                onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 12px rgba(0,229,255,0.15)'"
+                                onmouseout="this.style.borderColor='rgba(0,229,255,0.15)';this.style.boxShadow='none'">
+                                <div style="font-size:1.1rem;font-weight:700;color:var(--accent)">¥{{ q.amount }}</div>
+                                {% if q.bonus != '0' and q.bonus != '' %}
+                                <small style="color:#ffab00"><i class="bi bi-gift"></i> 送{{ q.bonus }}</small>
+                                {% endif %}
+                                {% if q.discount != '0' and q.discount != '' %}
+                                <br><small style="color:#00e676"><i class="bi bi-tag"></i> {{ q.discount }}折</small>
+                                {% endif %}
+                                {% if q.bonus == '0' and q.discount == '0' %}
+                                <small style="color:var(--text-dim)">{{ q.label }}</small>
+                                {% endif %}
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <label class="form-label">支付方式</label>
+                    <div class="row g-2 mb-3">
+                        {% if pay_methods_enabled.alipay %}
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="pay_method" value="alipay" id="payAlipay" checked>
+                            <label class="btn btn-outline-primary w-100" for="payAlipay">
+                                <i class="bi bi-alipay"></i> 支付宝
+                            </label>
+                        </div>
+                        {% endif %}
+                        {% if pay_methods_enabled.wechat %}
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="pay_method" value="wechat" id="payWechat" {% if not pay_methods_enabled.alipay %}checked{% endif %}>
+                            <label class="btn btn-outline-success w-100" for="payWechat">
+                                <i class="bi bi-wechat"></i> 微信支付
+                            </label>
+                        </div>
+                        {% endif %}
+                        {% if not pay_methods_enabled.alipay and not pay_methods_enabled.wechat %}
+                        <div class="col-12 text-muted py-2"><i class="bi bi-exclamation-circle"></i> 暂无可用的支付方式</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 btn-lg" {% if not pay_methods_enabled.alipay and not pay_methods_enabled.wechat %}disabled{% endif %}>确认支付</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{% url 'billing_index' %}">返回计费中心</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

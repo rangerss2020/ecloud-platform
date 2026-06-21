@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% block title %}控制台{% endblock %}
+{% block content %}
+
+<div class="row mb-4">
+
+{% if user.role == 'admin' %}
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#00e676">
+            <div class="label">累计充值</div>
+            <div class="value">¥{{ total_recharge }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ff9800">
+            <div class="label">代理数量</div>
+            <div class="value">{{ agent_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#2196f3">
+            <div class="label">会员数量</div>
+            <div class="value">{{ member_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#9c27b0">
+            <div class="label">调用次数</div>
+            <div class="value">{{ admin_total_calls }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#7c4dff">
+            <div class="label">Token消耗</div>
+            <div class="value" style="font-size:1.2rem">{{ admin_tokens }}</div>
+        </div>
+    </div>
+</div>
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="stat-card" style="--accent:#ffab00">
+            <div class="label">今日充值</div>
+            <div class="value">¥{{ today_recharge }}</div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-people"></i> 今日充值会员</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>用户名</th><th>充值金额</th></tr></thead>
+                    <tbody>
+                    {% for r in today_rechargers %}
+                    <tr>
+                        <td>{{ r.username }}</td>
+                        <td style="color:#00e676">¥{{ r.today_amount }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="text-center py-3" style="color:var(--text-dim)">今日暂无充值</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% elif user.role == 'agent' %}
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ffab00">
+            <div class="label">今日佣金</div>
+            <div class="value">¥{{ today_commission }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#7c4dff">
+            <div class="label">累计佣金</div>
+            <div class="value">¥{{ total_commission }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#00e5ff">
+            <div class="label">调用次数</div>
+            <div class="value">{{ sub_calls }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ff1744">
+            <div class="label">会员今日消费</div>
+            <div class="value">¥{{ sub_today_consume }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ff9800">
+            <div class="label">会员累计消费</div>
+            <div class="value">¥{{ sub_total_consume }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#e91e63">
+            <div class="label">会员数量</div>
+            <div class="value">{{ sub_member_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#9c27b0">
+            <div class="label">Token用量</div>
+            <div class="value" style="font-size:1.2rem">{{ sub_tokens }}</div>
+        </div>
+    </div>
+</div>
+{% elif user.role == 'member' %}
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ff1744">
+            <div class="label">累计消费</div>
+            <div class="value">¥{{ total_consume }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#00e676">
+            <div class="label">累计充值</div>
+            <div class="value">¥{{ total_recharge }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ffab00">
+            <div class="label">今日消费</div>
+            <div class="value">¥{{ today_consume }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#00e5ff">
+            <div class="label">调用次数</div>
+            <div class="value">{{ total_calls }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#7c4dff">
+            <div class="label">Token用量</div>
+            <div class="value" style="font-size:1.2rem">{{ total_tokens }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4" style="align-items: stretch;">
+    <div class="col-md-8">
+        <div class="card" style="height:320px;">
+            <div class="card-header"><i class="bi bi-graph-up"></i> 7日调用趋势</div>
+            <div class="card-body p-4" style="height:calc(100% - 54px);"><canvas id="callsChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card" style="height:320px;">
+            <div class="card-header"><i class="bi bi-pie-chart"></i> 模型费用分布</div>
+            <div class="card-body d-flex align-items-center justify-content-center" style="height:calc(100% - 54px); padding:20px;">
+                <canvas id="costChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4" style="align-items: stretch;">
+    <div class="col-md-6">
+        <div class="card" style="height:320px;">
+            <div class="card-header"><i class="bi bi-bar-chart"></i> 交易流水</div>
+            <div class="card-body p-4" style="height:calc(100% - 54px);"><canvas id="transChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-boxes"></i> 可用API模型</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>名称</th><th>方法</th><th>计费</th><th>单价</th><th>操作</th></tr></thead>
+                    <tbody>
+                    {% for m in api_models %}
+                    <tr>
+                        <td>{{ m.name }}</td>
+                        <td><span class="badge bg-secondary">{{ m.http_method }}</span></td>
+                        <td>{{ m.get_bill_type_display }}</td>
+                        <td>¥{{ m.price }}</td>
+                        <td><a href="{% url 'api_test' m.id %}" class="btn btn-sm btn-outline-primary">调用</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-3" style="color:var(--text-dim)">暂无可用API</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% include 'pagination.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-activity"></i> 最近调用记录</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>API</th><th>状态</th><th>费用</th><th>耗时</th><th>IP</th><th>时间</th></tr></thead>
+                    <tbody>
+                    {% for r in recent_records %}
+                    <tr>
+                        <td>{{ r.api_model.name|default:'-' }}</td>
+                        <td><span class="badge {% if r.response_state == 'OK' %}bg-success{% else %}bg-danger{% endif %}">{{ r.response_state }}</span></td>
+                        <td>¥{{ r.cost }}</td>
+                        <td>{{ r.duration_ms }}ms</td>
+                        <td><small>{{ r.ip_address }}</small></td>
+                        <td>{{ r.created_at|date:"m-d H:i:s" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center py-3" style="color:var(--text-dim)">暂无调用记录</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% with page_obj=page_obj2 page_param='page2' %}
+                {% include 'pagination.html' %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/vendor/chartjs/3.9.1/chart.min.js"></script>
+<script>
+Chart.defaults.color = '#8892a4';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+
+// 7日调用趋势
+new Chart(document.getElementById('callsChart'), {
+    type: 'line',
+    data: {
+        labels: {{ chart_days|safe }},
+        datasets: [{
+            label: 'API调用次数',
+            data: {{ chart_calls }},
+            borderColor: '#00e5ff',
+            backgroundColor: 'rgba(0,229,255,0.08)',
+            borderWidth: 2,
+            pointBackgroundColor: '#00e5ff',
+            pointBorderColor: '#0a0e17',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+            padding: { top: 10, right: 15, bottom: 5, left: 15 }
+        },
+        plugins: { legend: { labels: { color: '#8892a4', padding: 12 } } },
+        scales: {
+            x: { 
+                grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, 
+                ticks: { color: '#546078', padding: 8 },
+                border: { display: false }
+            },
+            y: { 
+                grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, 
+                ticks: { color: '#546078', padding: 8 },
+                border: { display: false },
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// 模型费用分布
+new Chart(document.getElementById('costChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ cost_labels|safe }},
+        datasets: [{
+            data: {{ cost_data }},
+            backgroundColor: ['#00e5ff','#7c4dff','#00e676','#ffab00','#ff1744','#448aff','#69f0ae','#ff80ab'],
+            borderColor: '#0a0e17',
+            borderWidth: 3,
+            hoverBorderColor: '#00e5ff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+            padding: { top: 10, right: 10, bottom: 5, left: 10 }
+        },
+        plugins: { 
+            legend: { 
+                position: 'bottom', 
+                labels: { color: '#8892a4', padding: 12, usePointStyle: true, font: { size: 11 } } 
+            } 
+        },
+        cutout: '60%'
+    }
+});
+
+// 交易流水
+new Chart(document.getElementById('transChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ daily_labels|safe }},
+        datasets: [{
+            label: '充值',
+            data: {{ daily_recharge }},
+            backgroundColor: 'rgba(0,230,118,0.6)',
+            borderColor: '#00e676',
+            borderWidth: 1,
+            borderRadius: 3,
+        }, {
+            label: '消费',
+            data: {{ daily_consume }},
+            backgroundColor: 'rgba(255,23,68,0.6)',
+            borderColor: '#ff1744',
+            borderWidth: 1,
+            borderRadius: 3,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { 
+            legend: { 
+                labels: { color: '#8892a4', usePointStyle: true, padding: 16 } 
+            }
+        },
+        scales: {
+            x: { 
+                stacked: true,
+                grid: { display: false }, 
+                ticks: { color: '#546078' }
+            },
+            y: { 
+                stacked: true,
+                grid: { color: 'rgba(255,255,255,0.04)' }, 
+                ticks: { color: '#546078' }
+            }
+        }
+    }
+});</script>
+{% endblock %}

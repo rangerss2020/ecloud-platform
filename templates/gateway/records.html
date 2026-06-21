@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}调用记录{% include "pagination.html" %}
+{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><i class="bi bi-list-ul"></i> API调用记录</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>API</th><th>方法</th><th>状态</th><th>费用</th><th>余额变动</th><th>耗时</th><th>时间</th></tr></thead>
+            <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.api_model.name|default:'-' }}</td>
+                <td><span class="badge bg-secondary">{{ r.request_method }}</span></td>
+                <td><span class="badge {% if r.response_state == 'OK' %}bg-success{% elif r.response_state == 'ERROR' %}bg-danger{% else %}bg-warning{% endif %}">{{ r.response_state }}</span></td>
+                <td>¥{{ r.cost }}</td>
+                <td><small>¥{{ r.balance_before }} → ¥{{ r.balance_after }}</small></td>
+                <td>{{ r.duration_ms }}ms</td>
+                <td>{{ r.created_at|date:"Y-m-d H:i:s" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-3">暂无调用记录</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include "pagination.html" %}
+{% endblock %}

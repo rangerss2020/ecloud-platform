@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}API Key 管理{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-key"></i> API Key 管理</div>
+            <div class="card-body">
+                {% if user.api_key %}
+                <div class="alert alert-success">
+                    <strong>AccessKey:</strong> <code style="font-size:1.1rem;">{{ user.api_key }}</code><br>
+                    <strong>SecretKey:</strong> <code style="font-size:1.1rem;">********</code> (仅生成时显示)
+                </div>
+                <p class="text-muted small">使用此 AK/SK 可直接调用本平台开放接口：</p>
+                <div class="mb-3">
+                    <label class="form-label">开放API地址</label>
+                    <input class="form-control" value="{{ request.scheme }}://{{ request.get_host }}/api/v1/{model_code}/" readonly>
+                </div>
+                <form method="post" onsubmit="return confirm('重置后旧Key将失效，确定重置？');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reset">
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-repeat"></i> 重置 API Key</button>
+                </form>
+                {% else %}
+                <p class="text-muted">您还没有申请 API Key，点击下方按钮生成：</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="generate">
+                    <button type="submit" class="btn btn-success btn-lg"><i class="bi bi-key-fill"></i> 生成 API Key</button>
+                </form>
+                {% endif %}
+
+                {% if new_ak %}
+                <div class="alert alert-warning mt-4">
+                    <h5><i class="bi bi-exclamation-triangle"></i> 新 Key 已生成！</h5>
+                    <p><strong>AccessKey:</strong> <code style="font-size:1.1rem;">{{ new_ak }}</code></p>
+                    <p><strong>SecretKey:</strong> <code style="font-size:1.1rem;">{{ new_sk }}</code></p>
+                    <p class="text-danger mb-0"><strong>SecretKey 仅显示一次，请立即复制保存！</strong></p>
+                </div>
+                {% endif %}
+
+                {% if user.api_key %}
+                <hr>
+                <h6>调用示例</h6>
+                <p class="small text-muted mb-2">方式一：Bearer Token（推荐）</p>
+                <div class="json-preview">import requests
+
+API_KEY = "{{ user.api_key }}"
+
+resp = requests.post(
+    '{{ request.scheme }}://{{ request.get_host }}/api/v1/deepseek-v3/',
+    headers={'Authorization': f'Bearer {API_KEY}', 'Content-Type': 'application/json'},
+    json={
+        'model': 'deepseek-v3',
+        'messages': [{'role': 'user', 'content': '你好'}]
+    }
+)
+print(resp.json())</div>
+                <p class="small text-muted my-2">方式二：HMAC签名</p>
+                <div class="json-preview">import requests, json, time, uuid, hmac, hashlib, urllib.parse
+
+AK = "{{ user.api_key }}"
+SK = "您的SecretKey"
+
+def percent_encode(s):
+    res = urllib.parse.quote(str(s).encode('utf-8'), '')
+    return res.replace('+','%20').replace('*','%2A').replace('%7E','~')
+
+def sign(method, params, path, sk):
+    d = dict(params); d.pop('Signature', None)
+    q = ''; [q := q + '&' + percent_encode(k) + '=' + percent_encode(d[k]) for k in sorted(d.keys())]
+    s = f'{method}\n{percent_encode(path)}\n{hashlib.sha256(q[1:].encode()).hexdigest()}'
+    return hmac.new(('BC_SIGNATURE&'+sk).encode(), s.encode(), hashlib.sha1).hexdigest()
+
+p = {'AccessKey': AK, 'SignatureMethod': 'HmacSHA1', 'SignatureVersion': 'V2.0',
+     'SignatureNonce': str(uuid.uuid4()),
+     'Timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.localtime())}
+p['Signature'] = sign('POST', p, '/api/v1/deepseek-v3/', SK)
+
+r = requests.post('{{ request.scheme }}://{{ request.get_host }}/api/v1/deepseek-v3/',
+    params=p, json={'model':'deepseek-v3','messages':[{'role':'user','content':'你好'}]})
+print(r.json())</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

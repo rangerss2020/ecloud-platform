@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}推广中心{% endblock %}
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-megaphone"></i> 推广中心</h4>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#ff9800">
+            <div class="label">推广码</div>
+            <div class="value" style="font-size:1rem;font-family:monospace">{{ ref_code }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#2196f3">
+            <div class="label">累计注册</div>
+            <div class="value">{{ ref_count }}</div>
+        </div>
+    </div>
+    {% if profile %}
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#4caf50">
+            <div class="label">佣金比例</div>
+            <div class="value" style="font-size:1.2rem;">{{ profile.commission_rate }}%</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#9c27b0">
+            <div class="label">累计佣金</div>
+            <div class="value">¥{{ profile.total_commission }}</div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="--accent:#00e676">
+            <div class="label">邀请奖励</div>
+            <div class="value">¥{{ invite_reward }}/人</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-link-45deg"></i> 推广链接</div>
+            <div class="card-body">
+                <div class="input-group mb-3">
+                    <input class="form-control" id="refLink" value="{{ ref_link }}" readonly>
+                    <button class="btn btn-outline-primary" onclick="copyRefLink()"><i class="bi bi-clipboard"></i> 复制</button>
+                </div>
+                <p class="small" style="color:var(--text-dim)">
+                    {% if profile %}
+                    用户通过此链接注册后，自动成为您的下级会员，您将获得其消费的 {{ profile.commission_rate }}% 佣金。
+                    {% else %}
+                    分享此链接邀请好友注册，每成功邀请一人您将获得 <strong>¥{{ invite_reward }}</strong> 奖励。
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-qr-code-scan"></i> 推广二维码</div>
+            <div class="card-body text-center">
+                <img src="{{ qr_url }}" class="img-fluid" style="max-width:200px" alt="推广二维码">
+                <p class="small mt-2" style="color:var(--text-dim)">扫描二维码直接进入注册页面</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyRefLink() {
+    var el = document.getElementById('refLink');
+    el.select();
+    document.execCommand('copy');
+    alert('推广链接已复制');
+}
+</script>
+{% endblock %}

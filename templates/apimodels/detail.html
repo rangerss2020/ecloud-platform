@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}{{ api_model.name }} - 详情{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-info-circle"></i> {{ api_model.name }}</div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr><td width="120">模型编码</td><td><code>{{ api_model.code }}</code></td></tr>
+                    <tr><td>请求方法</td><td><span class="badge bg-secondary">{{ api_model.http_method }}</span></td></tr>
+                    <tr><td>调用地址</td><td><code style="font-size:1rem;">{{ request.scheme }}://{{ request.get_host }}/api/v1/{{ api_model.code }}/</code></td></tr>
+                    <tr><td>计费方式</td><td>{{ api_model.get_bill_type_display }}{% if api_model.bill_type != 'free' %} - ¥{{ api_model.price }}{% endif %}</td></tr>
+                    <tr><td>描述</td><td>{{ api_model.description|default:'-' }}</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header"><i class="bi bi-list-ul"></i> 参数列表</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>参数名</th><th>类型</th><th>必填</th><th>默认值</th><th>说明</th></tr></thead>
+                    <tbody>
+                    {% for p in params %}
+                    <tr>
+                        <td><code>{{ p.param_name }}</code></td>
+                        <td>{{ p.get_param_type_display }}</td>
+                        <td>{% if p.required %}<span class="badge bg-danger">必填</span>{% else %}<span class="badge bg-secondary">可选</span>{% endif %}</td>
+                        <td>{{ p.default_value|default:'-' }}</td>
+                        <td>{{ p.description|default:'-' }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">暂无参数定义</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>立即测试</h5>
+                <p class="text-muted small">进入API调用页面，填写参数并发送请求</p>
+                <a href="{% url 'api_test' api_model.id %}" class="btn btn-primary btn-lg"><i class="bi bi-send"></i> 调用此API</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

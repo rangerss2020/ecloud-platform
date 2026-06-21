@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}系统设置{% endblock %}
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-gear"></i> 系统设置</h4>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-globe"></i> 基础设置</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">平台名称</label>
+                        <input name="site_name" class="form-control" value="{{ site_name }}" placeholder="ECloud API平台">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="_allow_register" value="1" {% if allow_register == '1' %}checked{% endif %}>
+                            <label class="form-check-label">开放注册</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="email_verify" value="1" {% if email_verify == '1' %}checked{% endif %}>
+                            <label class="form-check-label">邮箱验证</label>
+                        </div>
+                        <small style="color:var(--text-dim)">开启后注册需输入邮箱验证码（需先配置邮件服务）</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邀请奖励(元)</label>
+                        <input name="invite_reward" type="number" step="0.01" class="form-control" value="{{ invite_reward }}" placeholder="0">
+                        <small style="color:var(--text-dim)">被邀请人注册后，邀请人获得的余额奖励</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-cash-coin"></i> 充值设置</div>
+                <div class="card-body">
+                    <p class="small" style="color:var(--text-dim)">格式：金额,赠送金,折扣率,标签</p>
+                    <textarea name="quick_amounts" class="form-control form-control-sm json-preview" rows="8" style="font-size:0.85rem">{{ quick_amounts }}</textarea>
+                    <div class="small mt-2" style="color:var(--text-dim)">
+                        <strong>示例：</strong><br>
+                        <code>10,0,0,10元</code> — 充10到账10，无优惠<br>
+                        <code>50,5,0,50元</code> — 充50到账55，赠5元<br>
+                        <code>100,15,90,推荐</code> — 充100到账115，赠15+9折(付90)<br>
+                        <code>500,120,80,超值</code> — 充500到账620，赠120+8折(付400)
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-envelope"></i> 邮件配置</div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="form-label small">SMTP主机</label>
+                        <input name="smtp_host" class="form-control form-control-sm" value="{{ smtp_host }}" placeholder="smtp.example.com">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">SMTP端口</label>
+                        <input name="smtp_port" class="form-control form-control-sm" value="{{ smtp_port }}" placeholder="587">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">发件邮箱</label>
+                        <input name="smtp_user" class="form-control form-control-sm" value="{{ smtp_user }}" placeholder="noreply@example.com">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">邮箱密码</label>
+                        <input name="smtp_password" type="password" class="form-control form-control-sm" value="{{ smtp_password }}" placeholder="授权码">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">发件人名称</label>
+                        <input name="smtp_from" class="form-control form-control-sm" value="{{ smtp_from }}" placeholder="{{ site_name }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg"></i> 保存设置</button>
+</form>
+{% endblock %}

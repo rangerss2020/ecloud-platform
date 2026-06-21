@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}会员列表{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><i class="bi bi-people"></i> {% if user.role == 'admin' %}所有会员{% else %}我的下级会员{% endif %}</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>用户名</th><th>邮箱</th><th>所属代理</th><th>余额</th><th>注册时间</th>{% if user.role == 'admin' %}<th>操作</th>{% endif %}</tr></thead>
+            <tbody>
+            {% for m in members %}
+            <tr>
+                <td>{{ m.username }}</td>
+                <td>{{ m.email }}</td>
+                <td>{{ m.parent_agent.username|default:'无' }}</td>
+                <td>¥{{ m.balance }}</td>
+                <td>{{ m.created_at|date:"Y-m-d H:i" }}</td>
+                {% if user.role == 'admin' %}<td><a href="{% url 'admin_edit_user' m.id %}" class="btn btn-sm btn-outline-primary">编辑</a></td>{% endif %}
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center py-3" style="color:var(--text-dim)">暂无会员</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include "pagination.html" %}
+{% endblock %}

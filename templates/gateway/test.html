@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}调用 {{ api_model.name }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-send"></i> 调用 {{ api_model.name }}</div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>{{ api_model.http_method }}</strong> <code>{{ request.scheme }}://{{ request.get_host }}/api/v1/{{ api_model.code }}/</code><br>
+                    计费: <strong>{{ api_model.get_bill_type_display }}</strong>
+                    {% if api_model.bill_type != 'free' %} | 单价: <strong>¥{{ api_model.price }}</strong> / 当前余额: <strong>¥{{ user.balance }}</strong>{% endif %}
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    {% for p in params %}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <code>{{ p.param_name }}</code>
+                            {% if p.required %}<span class="text-danger">*</span>{% endif %}
+                            <small class="text-muted">({{ p.get_param_type_display }})</small>
+                        </label>
+                        {% if p.param_type == 'object' or p.param_type == 'array' %}
+                        <textarea name="{{ p.param_name }}" class="form-control" rows="3" placeholder='{}或[]'>{{ p.default_value }}</textarea>
+                        {% elif p.param_type == 'boolean' %}
+                        <select name="{{ p.param_name }}" class="form-select">
+                            <option value="true">true</option>
+                            <option value="false">false</option>
+                        </select>
+                        {% else %}
+                        <input type="text" name="{{ p.param_name }}" class="form-control" value="{{ p.default_value }}" placeholder="{{ p.description }}">
+                        {% endif %}
+                        {% if p.description %}<small class="text-muted">{{ p.description }}</small>{% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">此API无需参数</p>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-send"></i> 发送请求</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-info-circle"></i> 请求说明</div>
+            <div class="card-body">
+                <p><strong>请求方法:</strong> {{ api_model.http_method }}</p>
+                <p><strong>调用地址:</strong> <code>{{ request.scheme }}://{{ request.get_host }}/api/v1/{{ api_model.code }}/</code></p>
+                <p><strong>计费方式:</strong> {{ api_model.get_bill_type_display }}</p>
+                {% if api_model.bill_type != 'free' %}
+                <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> 每次调用将扣除 <strong>¥{{ api_model.price }}</strong></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

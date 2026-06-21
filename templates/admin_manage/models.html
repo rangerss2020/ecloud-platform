@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}模型管理{% include "pagination.html" %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-boxes"></i> 模型管理</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modelModal" onclick="clearForm()">
+        <i class="bi bi-plus-lg"></i> 添加模型
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+                    <thead><tr><th>名称</th><th>编码</th><th>渠道</th><th>方法</th><th>计费</th><th>单价</th><th>单位</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for m in models %}
+            <tr>
+                <td>{{ m.name }}</td>
+                <td><code>{{ m.code }}</code></td>
+                <td><span class="badge bg-info">{{ m.channel.name }}</span></td>
+                <td><span class="badge bg-secondary">{{ m.http_method }}</span></td>
+                <td>{{ m.get_bill_type_display }}</td>
+                <td>¥{{ m.price }}</td>
+                <td>{{ m.get_unit_type_display|default:'-' }}</td>
+                <td><span class="badge {% if m.status == 'enabled' %}bg-success{% else %}bg-secondary{% endif %}">{{ m.get_status_display }}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editModel({{ m.id }}, {{ m.channel_id }}, '{{ m.name|escapejs }}', '{{ m.code|escapejs }}', '{{ m.servlet_path|escapejs }}', '{{ m.http_method }}', '{{ m.bill_type }}', '{{ m.price }}', '{{ m.unit_type }}', '{{ m.description|escapejs }}', '{{ m.status }}')"><i class="bi bi-pencil"></i></button>
+                    <form method="post" class="d-inline" onsubmit="return confirm('确定删除？')">
+                        {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ m.id }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center py-4 text-muted">暂无模型，请先添加渠道</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modelModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <form method="post" class="modal-content" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="mAction" value="add">
+            <input type="hidden" name="id" id="mId">
+            <div class="modal-header"><h5 class="modal-title" id="mTitle">添加模型</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6"><label class="form-label">模型名称 *</label><input name="name" id="mName" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label">模型编码 *</label><input name="code" id="mCode" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label">所属渠道 *</label><select name="channel_id" id="mChannel" class="form-select" required>{% for ch in channels %}<option value="{{ ch.id }}">{{ ch.name }}</option>{% endfor %}</select></div>
+                    <div class="col-md-6"><label class="form-label">接口路径 *</label><input name="servlet_path" id="mPath" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label">请求方法</label><select name="http_method" id="mMethod" class="form-select"><option>POST</option><option>GET</option><option>PUT</option><option>DELETE</option></select></div>
+                    <div class="col-md-3"><label class="form-label">计费方式</label><select name="bill_type" id="mBill" class="form-select"><option value="per_call">按次计费</option><option value="per_unit">按量计费</option><option value="free">免费</option></select></div>
+                    <div class="col-md-2"><label class="form-label">单价(元)</label><input name="price" id="mPrice" class="form-control" value="0.01" step="0.0001" type="number"></div>
+                    <div class="col-md-2"><label class="form-label">计量单位</label><select name="unit_type" id="mUnit" class="form-select"><option value="">不适用</option><option value="per_1k">千tokens (K)</option><option value="per_1m">百万tokens (M)</option></select></div>
+                    <div class="col-md-2"><label class="form-label">状态</label><select name="status" id="mStatus" class="form-select"><option value="enabled">启用</option><option value="disabled">禁用</option></select></div>
+                    <div class="col-12"><label class="form-label">描述</label><input name="description" id="mDesc" class="form-control"></div>
+                    <div class="col-md-3"><label class="form-label">图标</label><select name="icon" id="mIcon" class="form-select"><option value="">无</option><option value="deepseek.svg">DeepSeek</option><option value="glm.svg">GLM</option><option value="qwen.svg">Qwen</option><option value="kimi.svg">Kimi</option><option value="llama.svg">Llama</option><option value="jiutian.svg">九天</option><option value="hunyuan.svg">混元</option><option value="wxyy.svg">文心</option><option value="embedding.svg">向量</option><option value="default.svg">默认AI</option><option value="__custom__">自定义上传...</option></select></div>
+                    <div class="col-md-3" id="iconUploadBox" style="display:none"><label class="form-label">上传图标</label><input type="file" name="icon_file" id="mIconFile" class="form-control form-control-sm" accept=".svg,.png,.jpg,.jpeg,.webp"></div>
+                </div>
+
+                <h6><i class="bi bi-list-ul"></i> 接口参数</h6>
+                <div id="paramContainer">
+                    <div class="row g-2 mb-2 param-row">
+                        <div class="col-md-3"><input name="param_name" class="form-control form-control-sm" placeholder="参数名"></div>
+                        <div class="col-md-2"><select name="param_type" class="form-select form-select-sm"><option>string</option><option>integer</option><option>number</option><option>boolean</option><option>array</option><option>object</option></select></div>
+                        <div class="col-md-2"><input name="param_default" class="form-control form-control-sm" placeholder="默认值"></div>
+                        <div class="col-md-3"><input name="param_desc" class="form-control form-control-sm" placeholder="参数说明"></div>
+                        <div class="col-md-1"><label class="form-check-label small"><input type="checkbox" name="param_required" value="0" class="form-check-input"> 必填</label></div>
+                        <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.param-row').remove()">&times;</button></div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addParamRow()"><i class="bi bi-plus"></i> 添加参数</button>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-primary">保存</button></div>
+        </form>
+    </div>
+</div>
+
+<script>
+function clearForm(){document.getElementById('mAction').value='add';document.getElementById('mId').value='';document.getElementById('mTitle').innerText='添加模型';document.getElementById('mName').value='';document.getElementById('mCode').value='';document.getElementById('mPath').value='';document.getElementById('mMethod').value='POST';document.getElementById('mBill').value='per_call';document.getElementById('mPrice').value='0.01';document.getElementById('mUnit').value='';document.getElementById('mDesc').value='';document.getElementById('mStatus').value='enabled';document.querySelectorAll('.param-row').forEach((r,i)=>{if(i>0)r.remove();else r.querySelectorAll('input,select').forEach(e=>e.value='')});}
+function editModel(id,ch,name,code,path,method,bill,price,unit,desc,status){document.getElementById('mAction').value='edit';document.getElementById('mId').value=id;document.getElementById('mTitle').innerText='编辑模型';document.getElementById('mName').value=name;document.getElementById('mCode').value=code;document.getElementById('mPath').value=path;document.getElementById('mMethod').value=method;document.getElementById('mBill').value=bill;document.getElementById('mPrice').value=price;document.getElementById('mUnit').value=unit;document.getElementById('mDesc').value=desc;document.getElementById('mStatus').value=status;document.getElementById('mChannel').value=ch;new bootstrap.Modal('#modelModal').show();}
+function addParamRow(){const tpl=document.querySelector('.param-row').cloneNode(true);tpl.querySelectorAll('input,select').forEach(e=>{e.value='';if(e.type==='checkbox')e.checked=false});const idx=document.querySelectorAll('.param-row').length;tpl.querySelector('[name=param_required]').value=idx;document.getElementById('paramContainer').appendChild(tpl);}
+document.getElementById('mIcon').addEventListener('change',function(){document.getElementById('iconUploadBox').style.display=this.value==='__custom__'?'':'none'});
+</script>
+{% include "pagination.html" %}
+{% endblock %}
