@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ PLATFORM_NAME }}{% endblock %}</title>
+    <link href="/static/vendor/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap-icons/1.10.5/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Orbitron';
+            src: local('Orbitron'), local('Arial');
+        }
+
+        :root {
+            --bg-deep: #0a0e17;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2235;
+            --border-glow: #0ff;
+            --accent: #00e5ff;
+            --accent2: #7c4dff;
+            --accent3: #00e676;
+            --danger: #ff1744;
+            --warning: #ffab00;
+            --text-primary: #e0e0e0;
+            --text-secondary: #8892a4;
+            --text-dim: #546078;
+        }
+
+        * { scrollbar-width: thin; scrollbar-color: #1a2235 #0a0e17; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0e17; }
+        ::-webkit-scrollbar-thumb { background: #1a2235; border-radius: 3px; }
+
+        html { background: var(--bg-deep); }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 14px;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0,229,255,0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(124,77,255,0.03) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px);
+            pointer-events: none; z-index: 0;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #0d1b2a 100%);
+            border-bottom: 1px solid rgba(0,229,255,0.2);
+            box-shadow: 0 0 30px rgba(0,229,255,0.05);
+            backdrop-filter: blur(10px);
+            z-index: 1030;
+        }
+        .navbar-brand {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 1.25rem;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: var(--accent) !important;
+        }
+        .navbar .nav-link {
+            color: var(--text-secondary) !important;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .navbar .nav-link:hover {
+            color: var(--accent) !important;
+            text-shadow: 0 0 10px rgba(0,229,255,0.5);
+        }
+        .navbar .nav-link::after {
+            content: ''; position: absolute; bottom: 2px; left: 50%;
+            width: 0; height: 2px;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            transition: all 0.3s; transform: translateX(-50%);
+        }
+        .navbar .nav-link:hover::after { width: 60%; }
+
+        .glow-card, .card {
+            background: linear-gradient(145deg, #111827, #0f172a);
+            border: 1px solid rgba(0,229,255,0.1);
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.4), 0 0 1px rgba(0,229,255,0.3);
+            margin-bottom: 1.25rem;
+            transition: all 0.3s;
+            position: relative; z-index: 1;
+        }
+        .glow-card:hover, .card:hover {
+            border-color: rgba(0,229,255,0.3);
+            box-shadow: 0 0 30px rgba(0,229,255,0.08), 0 0 1px rgba(0,229,255,0.5);
+            transform: translateY(-1px);
+        }
+        .glow-card .card-header, .card .card-header, .card-header {
+            background: linear-gradient(90deg, rgba(0,229,255,0.06), transparent);
+            border-bottom: 1px solid rgba(0,229,255,0.1);
+            color: var(--accent);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 0.75rem 1.25rem;
+        }
+        .glow-card .card-body, .card .card-body { color: var(--text-primary); background: transparent; }
+
+        .stat-card {
+            background: linear-gradient(145deg, #111827, #0f172a);
+            border: 1px solid rgba(0,229,255,0.15);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.3s;
+            position: relative; z-index: 1;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 100%;
+            background: var(--accent, #00e5ff);
+            box-shadow: 0 0 12px var(--accent, #00e5ff);
+        }
+        .stat-card .value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent, #00e5ff);
+            text-shadow: 0 0 15px rgba(0,229,255,0.3);
+            letter-spacing: 1px;
+        }
+        .stat-card:hover {
+            border-color: rgba(0,229,255,0.4);
+            box-shadow: 0 0 25px rgba(0,229,255,0.08);
+            transform: translateY(-2px);
+        }
+        .stat-card .value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-shadow: 0 0 15px rgba(0,229,255,0.3);
+            letter-spacing: 1px;
+        }
+        .stat-card .label { color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        .table {
+            color: var(--text-primary);
+            margin-bottom: 0;
+            font-size: 0.86rem;
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        .table thead {
+            position: relative;
+        }
+        .table thead::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,229,255,0.04), transparent);
+            pointer-events: none;
+        }
+        .table thead th {
+            background: rgba(0,229,255,0.05);
+            border-bottom: 1px solid rgba(0,229,255,0.25);
+            color: var(--accent);
+            font-family: 'Orbitron', monospace;
+            font-weight: 400;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 0.85rem 1rem;
+            white-space: nowrap;
+        }
+        .table thead th:first-child {
+            border-radius: 8px 0 0 0;
+            padding-left: 1.25rem;
+        }
+        .table thead th:last-child {
+            border-radius: 0 8px 0 0;
+            padding-right: 1.25rem;
+        }
+        .table tbody td {
+            border-bottom: 1px solid rgba(255,255,255,0.025);
+            padding: 0.75rem 1rem;
+            vertical-align: middle;
+            color: var(--text-secondary);
+        }
+        .table tbody td:first-child { padding-left: 1.25rem; }
+        .table tbody td:last-child { padding-right: 1.25rem; }
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .table tbody tr:last-child td:first-child {
+            border-radius: 0 0 0 8px;
+        }
+        .table tbody tr:last-child td:last-child {
+            border-radius: 0 0 8px 0;
+        }
+        .table tbody tr {
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .table tbody tr:hover {
+            background: rgba(0,229,255,0.05) !important;
+            color: #fff;
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+        .table tbody tr:hover td {
+            color: #fff;
+            border-bottom-color: rgba(0,229,255,0.08);
+        }
+        .table code {
+            background: rgba(0,229,255,0.08);
+            color: var(--accent);
+            padding: 1px 8px;
+            border-radius: 3px;
+            font-size: 0.85em;
+        }
+        .table .badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+        }
+        .table-sm thead th { padding: 0.55rem 0.75rem; font-size: 0.65rem; }
+        .table-sm tbody td { padding: 0.5rem 0.75rem; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #00b8d4);
+            border: none;
+            box-shadow: 0 0 15px rgba(0,229,255,0.2);
+            color: #000;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 25px rgba(0,229,255,0.4);
+            background: linear-gradient(135deg, #00f0ff, var(--accent));
+            color: #000;
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent3), #00c853);
+            border: none; box-shadow: 0 0 15px rgba(0,230,118,0.2); color: #000; font-weight: 600;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #ff8f00);
+            border: none; box-shadow: 0 0 15px rgba(255,171,0,0.2); color: #000; font-weight: 600;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #d50000);
+            border: none; box-shadow: 0 0 15px rgba(255,23,68,0.2);
+        }
+        .btn-outline-primary {
+            border-color: rgba(0,229,255,0.3); color: var(--accent);
+        }
+        .btn-outline-primary:hover {
+            background: rgba(0,229,255,0.1); border-color: var(--accent); color: var(--accent);
+            box-shadow: 0 0 15px rgba(0,229,255,0.2);
+        }
+        .btn-outline-secondary {
+            border-color: rgba(255,255,255,0.1); color: var(--text-secondary);
+        }
+        .btn-outline-secondary:hover {
+            background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); color: #fff;
+        }
+        .btn-outline-danger {
+            border-color: rgba(255,23,68,0.3); color: var(--danger);
+        }
+        .btn-outline-danger:hover {
+            background: rgba(255,23,68,0.1); border-color: var(--danger);
+            box-shadow: 0 0 15px rgba(255,23,68,0.15);
+        }
+
+        .badge { font-weight: 500; letter-spacing: 0.3px; }
+        .badge.bg-success, .badge.bg-danger, .badge.bg-warning, .badge.bg-info {
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        .badge-admin { background: linear-gradient(135deg, #ff1744, #d50000) !important; }
+        .badge-agent { background: linear-gradient(135deg, #ffab00, #ff8f00) !important; }
+        .badge-member { background: linear-gradient(135deg, #00e676, #00c853) !important; }
+
+        .form-control, .form-select {
+            background: #0d1117;
+            border: 1px solid rgba(0,229,255,0.15);
+            color: var(--text-primary);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .form-control:disabled, .form-select:disabled {
+            background: #0d1117;
+            color: var(--text-dim);
+            border-color: rgba(255,255,255,0.06);
+        }
+        .form-control:focus, .form-select:focus {
+            background: #111827;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(0,229,255,0.15);
+            color: #fff;
+        }
+        .form-control::placeholder { color: var(--text-dim); }
+
+        .alert {
+            background: linear-gradient(145deg, #111827, #0f172a);
+            border: 1px solid rgba(0,229,255,0.15);
+            color: var(--text-primary);
+            border-radius: 10px;
+        }
+        .alert-success { border-color: rgba(0,230,118,0.3); }
+        .alert-danger { border-color: rgba(255,23,68,0.3); }
+        .alert-warning { border-color: rgba(255,171,0,0.3); }
+        .alert-info { border-color: rgba(0,229,255,0.3); }
+
+        .modal-content {
+            background: linear-gradient(160deg, #111827, #0d1117);
+            border: 1px solid rgba(0,229,255,0.2);
+            border-radius: 16px;
+            box-shadow: 0 0 60px rgba(0,229,255,0.08);
+        }
+        .modal-header {
+            border-bottom: 1px solid rgba(0,229,255,0.1);
+        }
+        .modal-footer {
+            border-top: 1px solid rgba(0,229,255,0.1);
+        }
+        .modal-title { color: var(--accent); }
+
+        .dropdown-menu {
+            background: #111827;
+            border: 1px solid rgba(0,229,255,0.15);
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            padding: 0.5rem;
+        }
+        .dropdown-item {
+            color: var(--text-secondary);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s;
+        }
+        .dropdown-item:hover {
+            background: rgba(0,229,255,0.08);
+            color: var(--accent);
+        }
+        .dropdown-divider { border-color: rgba(0,229,255,0.1); }
+        .dropdown-item-text { color: var(--text-secondary); }
+
+        .json-preview {
+            background: #0a0e17;
+            border: 1px solid rgba(0,229,255,0.15);
+            color: var(--accent);
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'Consolas', 'Cascadia Code', monospace;
+            font-size: 0.82rem;
+            max-height: 400px;
+            overflow: auto;
+            white-space: pre-wrap;
+            text-shadow: 0 0 2px rgba(0,229,255,0.2);
+        }
+
+        code {
+            color: var(--accent);
+            background: rgba(0,229,255,0.06);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            margin-top: 3rem;
+            border-top: 1px solid rgba(0,229,255,0.05);
+            letter-spacing: 1px;
+        }
+
+        .btn-check + .btn-outline-primary {
+            color: var(--text-secondary);
+            border-color: rgba(0,229,255,0.2);
+        }
+        .btn-check:checked + .btn-outline-primary {
+            background: rgba(0,229,255,0.12);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 20px rgba(0,229,255,0.2);
+        }
+        .btn-check + .btn-outline-success {
+            color: var(--text-secondary);
+            border-color: rgba(0,230,118,0.2);
+        }
+        .btn-check:checked + .btn-outline-success {
+            background: rgba(0,230,118,0.12);
+            border-color: var(--accent3);
+            color: var(--accent3);
+            box-shadow: 0 0 20px rgba(0,230,118,0.2);
+        }
+
+        .page-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(0,229,255,0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .scanning { animation: pulse 2s infinite; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glow-card, .stat-card, .card { animation: slideIn 0.5s ease-out; }
+
+        .form-switch .form-check-input:checked {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0,229,255,0.3);
+        }
+
+        /* ── Bootstrap 白色覆盖 ── */
+        .table, .table>*, .table-bordered, .table-hover { --bs-table-bg: transparent; --bs-table-color: var(--text-primary); --bs-table-hover-bg: rgba(0,229,255,0.04); --bs-table-border-color: rgba(255,255,255,0.04); }
+        .table-light { --bs-table-bg: #111827 !important; color: var(--text-primary) !important; }
+        .bg-white, .bg-light { background-color: #111827 !important; }
+        .text-dark { color: var(--text-primary) !important; }
+        .text-muted { color: var(--text-secondary) !important; }
+        .border { border-color: rgba(255,255,255,0.06) !important; }
+        .list-group-item { background: #111827; border-color: rgba(255,255,255,0.04); color: var(--text-primary); }
+        .page-link { background: #0d1117; border-color: rgba(0,229,255,0.1); color: var(--accent); }
+        .page-link:hover { background: rgba(0,229,255,0.1); color: var(--accent); }
+        .page-item.active .page-link { background: var(--accent); border-color: var(--accent); color: #000; }
+        .page-item.disabled .page-link { background: #0d1117; border-color: rgba(255,255,255,0.04); color: var(--text-dim); }
+        .input-group-text { background: #0d1117; border-color: rgba(0,229,255,0.15); color: var(--text-secondary); }
+        .form-label, .form-check-label, .col-form-label { color: var(--text-secondary); }
+
+        /* 模态框层级修复 */
+        .modal { z-index: 1055 !important; }
+        .modal-backdrop { z-index: 1050 !important; }
+        .container-fluid { position: static; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">&#9670; {{ PLATFORM_NAME }}</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-cpu"></i> 控制台</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'api_model_list' %}"><i class="bi bi-boxes"></i> 模型</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'gateway_index' %}"><i class="bi bi-broadcast"></i> 网关</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'chat' %}"><i class="bi bi-chat-dots"></i> 对话</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'api_docs' %}"><i class="bi bi-book-open"></i> 文档</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'billing_index' %}"><i class="bi bi-wallet2"></i> 钱包</a></li>
+                    {% if user.role == 'agent' or user.role == 'admin' %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'agent_dashboard' %}"><i class="bi bi-diagram-3"></i> 代理</a></li>
+                    {% endif %}
+                    {% if user.role == 'admin' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-sliders2-vertical"></i> 管理</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'manage_channels' %}"><i class="bi bi-hdd-stack"></i> 渠道管理</a></li>
+                            <li><a class="dropdown-item" href="{% url 'manage_models' %}"><i class="bi bi-cpu-fill"></i> 模型管理</a></li>
+                            <li><a class="dropdown-item" href="{% url 'manage_sensitive_words' %}"><i class="bi bi-shield-shaded"></i> 敏感词</a></li>
+                            <li><a class="dropdown-item" href="{% url 'manage_redeem_codes' %}"><i class="bi bi-ticket-perforated"></i> 兑换码</a></li>
+                            <li><a class="dropdown-item" href="{% url 'manage_packages' %}"><i class="bi bi-box-seam"></i> 套餐管理</a></li>
+                            <li><a class="dropdown-item" href="{% url 'admin_transactions' %}"><i class="bi bi-journal-text"></i> 交易日志</a></li>
+                            <li><a class="dropdown-item" href="{% url 'withdrawal_review' %}"><i class="bi bi-cash-stack"></i> 提现审核</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'system_settings' %}"><i class="bi bi-gear"></i> 系统设置</a></li>
+                            <li><a class="dropdown-item" href="{% url 'payment_settings' %}"><i class="bi bi-sliders"></i> 支付设置</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-badge"></i> {{ user.username }}
+                            <span class="badge {% if user.role == 'admin' %}badge-admin{% elif user.role == 'agent' %}badge-agent{% else %}badge-member{% endif %}">{{ user.get_role_display }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text"><i class="bi bi-wallet2"></i> ¥{{ user.balance }}</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'user_profile' %}"><i class="bi bi-person-gear"></i> 个人设置</a></li>
+                            <li><a class="dropdown-item" href="{% url 'user_apikey' %}"><i class="bi bi-key-fill"></i> API Key</a></li>
+                            {% if user.is_staff %}
+                             <li><a class="dropdown-item" href="/admin/"><i class="bi bi-shield-lock-fill"></i> Django后台</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{% url 'agent_promotion' %}"><i class="bi bi-link-45deg"></i> 邀请推广</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'user_logout' %}"><i class="bi bi-box-arrow-right"></i> 退出</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'user_login' %}">登录</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'user_register' %}">注册</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">&#9670; {{ PLATFORM_NAME }} &#9670;</div>
+    <script src="/static/vendor/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

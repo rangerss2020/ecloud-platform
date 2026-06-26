@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}兑换码管理{% endblock %}
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-ticket-perforated"></i> 兑换码管理</h4>
+<form method="get" class="input-group input-group-sm mb-3" style="max-width:250px">
+    <input name="q" class="form-control" placeholder="搜索兑换码/批次..." value="{{ search }}">
+    <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
+
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-plus-circle"></i> 批量生成</div>
+    <div class="card-body">
+        <form method="post" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="generate">
+            <div class="col-md-3"><label class="form-label small">金额(元)</label><input name="amount" type="number" step="0.01" class="form-control form-control-sm" value="50" required></div>
+            <div class="col-md-3"><label class="form-label small">数量</label><input name="count" type="number" class="form-control form-control-sm" value="1" min="1" max="100"></div>
+            <div class="col-md-3"><button type="submit" class="btn btn-primary btn-sm w-100">生成兑换码</button></div>
+        </form>
+    </div>
+</div>
+
+{% if new_codes %}
+<div class="card mb-3" style="border-color:#00e676">
+    <div class="card-header" style="color:#00e676"><i class="bi bi-check-circle"></i> 批次 {{ new_batch }}</div>
+    <div class="card-body">
+        <p class="small" style="color:var(--text-dim)">以下兑换码仅显示一次，请复制保存：</p>
+        <div class="json-preview">{% for c in new_codes %}{{ c }}<br>{% endfor %}</div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header"><i class="bi bi-list-ul"></i> 兑换码列表</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>兑换码</th><th>金额</th><th>批次</th><th>状态</th><th>使用者</th><th>使用时间</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for c in codes %}
+            <tr>
+                <td><code>{{ c.code }}</code></td>
+                <td>¥{{ c.amount }}</td>
+                <td>{{ c.batch_no|default:'-' }}</td>
+                <td><span class="badge {% if c.is_used %}bg-secondary{% else %}bg-success{% endif %}">{{ c.is_used|yesno:'已使用,未使用' }}</span></td>
+                <td>{{ c.used_by.username|default:'-' }}</td>
+                <td>{{ c.used_at|date:"m-d H:i"|default:'-' }}</td>
+                <td>
+                    <form method="post" class="d-inline" onsubmit="return confirm('确定删除？')">
+                        {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.id }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4" style="color:var(--text-dim)">暂无兑换码</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include 'pagination.html' %}
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block title %}计费管理{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="stat-card" style="--accent:#00e676">
+            <div class="label">当前余额</div>
+            <div class="value">¥{{ user.balance }}</div>
+        </div>
+    </div>
+    <div class="col-md-8 d-flex align-items-center flex-wrap gap-2">
+        <a href="{% url 'recharge' %}" class="btn btn-success"><i class="bi bi-cash-coin"></i> 立即充值</a>
+        <a href="{% url 'transaction_list' %}" class="btn btn-outline-secondary"><i class="bi bi-list-ul"></i> 全部交易</a>
+        <form method="post" action="{% url 'redeem_code' %}" class="d-flex gap-1">
+            {% csrf_token %}
+            <input name="code" class="form-control form-control-sm" placeholder="兑换码" style="width:130px">
+            <button class="btn btn-sm btn-outline-warning">兑换</button>
+        </form>
+    </div>
+</div>
+
+{% if my_packages %}
+<div class="row mb-3">
+    {% for up in my_packages %}
+    <div class="col-md-3 mb-2">
+        <div class="stat-card" style="--accent:#7c4dff">
+            <div class="label">{{ up.package.name }}</div>
+            <div class="value" style="font-size:0.9rem">
+                {% if up.status == 'active' %}<span class="badge bg-success">使用中</span>
+                {% elif up.status == 'expired' %}<span class="badge bg-danger">已过期</span>
+                {% else %}<span class="badge bg-warning">已用完</span>{% endif %}
+                {% if up.package.call_limit > 0 %}{{ up.calls_used }}/{{ up.package.call_limit }}次 {% endif %}
+                {% if up.package.token_limit > 0 %}{{ up.tokens_used }}/{{ up.package.token_limit }}T{% endif %}
+                {% if up.end_date %}<br><small>到期: {{ up.end_date|date:"Y-m-d" }}</small>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if packages %}
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-box-seam"></i> 可用套餐</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>名称</th><th>价格</th><th>调用</th><th>Token</th><th>期限</th><th>模型</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for p in packages %}
+            <tr>
+                <td>{{ p.name }}</td>
+                <td>¥{{ p.price }}</td>
+                <td>{% if p.call_limit == 0 %}不限{% else %}{{ p.call_limit }}次{% endif %}</td>
+                <td>{% if p.token_limit == 0 %}不限{% else %}{{ p.token_limit }}{% endif %}</td>
+                <td>{% if p.duration_type == 'forever' %}永久{% else %}{{ p.duration_value }}{{ p.get_duration_type_display }}{% endif %}</td>
+                <td>{% if p.model_restrict %}{{ p.model_ids|length }}个{% else %}全部{% endif %}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-warning" onclick="showBuyModal({{ p.id }}, '{{ p.name|escapejs }}', '{{ p.price }}', '{{ p.get_duration_type_display }}', {{ p.duration_value }}, '{% if p.call_limit == 0 %}不限{% else %}{{ p.call_limit }}次{% endif %}', '{% if p.token_limit == 0 %}不限{% else %}{{ p.token_limit }}{% endif %}', '{{ p.description|escapejs }}')">¥{{ p.price }} 购买</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-3" style="color:var(--text-dim)">暂无可购买套餐</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock-history"></i> 最近交易</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>类型</th><th>金额</th><th>余额</th><th>说明</th><th>时间</th></tr></thead>
+                    <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>
+                            {% if t.type == 'recharge' %}<span class="badge bg-success">充值</span>
+                            {% elif t.type == 'consume' %}<span class="badge bg-danger">消费</span>
+                            {% elif t.type == 'commission' %}<span class="badge bg-info">佣金</span>
+                            {% else %}<span class="badge bg-secondary">{{ t.get_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong class="{% if t.amount > 0 %}text-success{% else %}text-danger{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount }}</strong></td>
+                        <td>¥{{ t.balance_after }}</td>
+                        <td>{{ t.description }}</td>
+                        <td>{{ t.created_at|date:"m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">暂无交易记录</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% include 'pagination.html' %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-receipt"></i> 充值记录</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>订单号</th><th>金额</th><th>状态</th><th>时间</th></tr></thead>
+                    <tbody>
+                    {% for o in recharge_orders %}
+                    <tr>
+                        <td><code>{{ o.order_no }}</code></td>
+                        <td>¥{{ o.amount }}</td>
+                        <td><span class="badge {% if o.status == 'completed' %}bg-success{% elif o.status == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">{{ o.get_status_display }}</span></td>
+                        <td>{{ o.created_at|date:"m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">暂无充值记录</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% with page_obj=page_obj2 page_param='page2' %}
+                {% include 'pagination.html' %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="buyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom:1px solid rgba(0,229,255,0.1)">
+                <h5 class="modal-title"><i class="bi bi-box-seam"></i> 购买套餐</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <h3 id="buyPkgName" style="color:var(--accent)"></h3>
+                    <div style="font-size:2.5rem;font-weight:700;color:var(--accent)" id="buyPkgPrice"></div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.1)">
+                            <div style="color:var(--text-dim);font-size:0.75rem">调用次数</div>
+                            <div style="font-size:1.2rem;font-weight:600" id="buyPkgCalls"></div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background:rgba(124,77,255,0.04);border:1px solid rgba(124,77,255,0.1)">
+                            <div style="color:var(--text-dim);font-size:0.75rem">Token量</div>
+                            <div style="font-size:1.2rem;font-weight:600" id="buyPkgTokens"></div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background:rgba(0,230,118,0.04);border:1px solid rgba(0,230,118,0.1)">
+                            <div style="color:var(--text-dim);font-size:0.75rem">期限</div>
+                            <div style="font-size:1.2rem;font-weight:600" id="buyPkgDuration"></div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background:rgba(255,171,0,0.04);border:1px solid rgba(255,171,0,0.1)">
+                            <div style="color:var(--text-dim);font-size:0.75rem">当前余额</div>
+                            <div style="font-size:1.2rem;font-weight:600;color:var(--accent3)">¥{{ user.balance }}</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="small" style="color:var(--text-dim)" id="buyPkgDesc"></p>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(0,229,255,0.1)">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form method="post" id="buyForm">
+                    {% csrf_token %}<button class="btn btn-warning">确认购买</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showBuyModal(id, name, price, dtype, dval, calls, tokens, desc) {
+    document.getElementById('buyPkgName').textContent = name;
+    document.getElementById('buyPkgPrice').textContent = '¥' + price;
+    document.getElementById('buyPkgCalls').textContent = calls;
+    document.getElementById('buyPkgTokens').textContent = tokens;
+    document.getElementById('buyPkgDuration').textContent = dval + dtype;
+    document.getElementById('buyPkgDesc').textContent = desc || '';
+    document.getElementById('buyForm').action = '/billing/buy-package/' + id + '/';
+    new bootstrap.Modal('#buyModal').show();
+}
+</script>
+{% endblock %}

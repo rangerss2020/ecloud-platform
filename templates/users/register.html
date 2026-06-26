@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}注册{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card mt-4">
+            <div class="card-header text-center"><h4><i class="bi bi-person-plus"></i> 用户注册</h4></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" name="email" id="regEmail" class="form-control">
+                    </div>
+                    {% if verify_enabled %}
+                    <div class="mb-3">
+                        <label class="form-label">验证码</label>
+                        <div class="input-group">
+                            <input type="text" name="verify_code" class="form-control" placeholder="6位验证码" maxlength="6" required>
+                            <button type="button" class="btn btn-outline-primary" onclick="sendCode()" id="sendBtn">获取验证码</button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">手机号</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">确认密码</label>
+                        <input type="password" name="password2" class="form-control" required>
+                    </div>
+                    {% if request.GET.ref %}<input type="hidden" name="ref" value="{{ request.GET.ref }}">{% endif %}
+                    <button type="submit" class="btn btn-primary w-100">注 册</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{% url 'user_login' %}">已有账号？去登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if verify_enabled %}
+<script>
+var cd=0;
+function sendCode(){
+    var e=document.getElementById('regEmail').value.trim();
+    if(!e){alert('请先输入邮箱');return;}
+    var b=document.getElementById('sendBtn');
+    if(cd>0)return;b.disabled=true;
+    var f=new FormData();f.append('email',e);
+    fetch('{% url "send_register_code" %}',{method:'POST',body:f,headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value}})
+    .then(r=>r.json()).then(d=>{if(d.ok){cd=60;tick()}else{alert(d.error||'失败');b.disabled=false}});
+}
+function tick(){var b=document.getElementById('sendBtn');if(cd<=0){b.disabled=false;b.textContent='获取验证码';return}b.textContent=cd+'s';cd--;setTimeout(tick,1000)}
+</script>
+{% endif %}
+{% endblock %}

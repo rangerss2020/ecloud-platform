@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}编辑用户{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person-gear"></i> 编辑用户: {{ target.username }}</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input class="form-control" value="{{ target.username }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色</label>
+                        <select name="role" class="form-select">
+                            <option value="member" {% if target.role == 'member' %}selected{% endif %}>会员</option>
+                            <option value="agent" {% if target.role == 'agent' %}selected{% endif %}>代理</option>
+                            <option value="admin" {% if target.role == 'admin' %}selected{% endif %}>管理员</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱</label>
+                        <input name="email" class="form-control" value="{{ target.email }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">手机号</label>
+                        <input name="phone" class="form-control" value="{{ target.phone }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">余额</label>
+                        <input name="balance" type="number" step="0.01" class="form-control" value="{{ target.balance }}">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" value="1" {% if target.is_active %}checked{% endif %}>
+                            <label class="form-check-label">启用账户</label>
+                        </div>
+                    </div>
+                    {% if agent_profile %}
+                    <div class="mb-3">
+                        <label class="form-label">代理等级</label>
+                        <select name="agent_level" class="form-select">
+                            <option value="1" {% if agent_profile.level == 1 %}selected{% endif %}>L1 - 一级代理</option>
+                            <option value="2" {% if agent_profile.level == 2 %}selected{% endif %}>L2 - 二级代理</option>
+                            <option value="3" {% if agent_profile.level == 3 %}selected{% endif %}>L3 - 三级代理</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">佣金比例 (%)</label>
+                        <input name="commission_rate" type="number" step="0.01" class="form-control" value="{{ agent_profile.commission_rate }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">累计佣金</label>
+                        <input class="form-control" value="¥{{ agent_profile.total_commission }}" disabled>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex gap-2">
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary flex-grow-1">取消</a>
+                        <button type="submit" class="btn btn-primary flex-grow-1">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

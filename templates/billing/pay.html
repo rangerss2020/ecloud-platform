@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}扫码支付{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5 text-center">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-qr-code-scan"></i> {{ pay_method_name }}扫码支付</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h5>订单号</h5>
+                    <code>{{ order.order_no }}</code>
+                </div>
+                <div class="mb-3">
+                    <h5>充值金额</h5>
+                    <span style="font-size:2rem;color:var(--accent)">¥{{ amount }}</span>
+                    {% if discount_rate > 0 %}
+                    <div class="mt-1">
+                        <span class="badge bg-success">{{ discount_rate }}折</span>
+                        <span style="color:var(--text-dim);font-size:0.85rem"> 实付: </span>
+                        <span style="color:#00e676;font-size:1.3rem">¥{{ pay_amount }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4 p-3 bg-light rounded" id="qrcodeBox">
+                    {% if qr_code %}
+                    <img src="{{ qr_code|default:'' }}" style="max-width:220px" onerror="this.parentElement.innerHTML='<div class=\'text-muted py-3\'><i class=\'bi bi-qr-code display-3 d-block\'></i><p class=\'mt-2\'>请用{{ pay_method_name }}扫码支付</p><small class=\'text-warning\'>Mock模式: 点击下方按钮模拟支付</small></div>'">
+                    {% endif %}
+                </div>
+
+                <div id="payStatus" class="alert alert-warning">
+                    <div class="spinner-border spinner-border-sm"></div> 等待支付...
+                </div>
+
+                <div class="d-flex gap-2 justify-content-center mt-3">
+                    <button class="btn btn-outline-secondary" onclick="mockPay()">模拟支付成功</button>
+                    <a href="{% url 'billing_index' %}" class="btn btn-outline-primary">查看账单</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let checkCount = 0;
+function checkStatus() {
+    fetch('{% url "check_order" order.order_no %}')
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'completed') {
+                document.getElementById('payStatus').className = 'alert alert-success';
+                document.getElementById('payStatus').innerHTML = '<i class="bi bi-check-circle"></i> 支付成功！¥{{ amount }} 已到账';
+                setTimeout(() => location.href = '{% url "billing_index" %}', 2000);
+            } else if (data.status === 'failed') {
+                document.getElementById('payStatus').className = 'alert alert-danger';
+                document.getElementById('payStatus').innerHTML = '支付失败，请重新下单';
+            } else {
+                checkCount++;
+                if (checkCount < 60) setTimeout(checkStatus, 2000);
+            }
+        });
+}
+
+function mockPay() {
+    fetch('/billing/callback/{{ pay_method }}/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'out_trade_no={{ order.order_no }}&trade_status=TRADE_SUCCESS'
+    }).then(r => r.text()).then(() => checkStatus());
+}
+
+setTimeout(checkStatus, 2000);
+</script>
+{% endblock %}

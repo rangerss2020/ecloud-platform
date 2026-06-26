@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}支付设置{% endblock %}
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-sliders"></i> 支付设置</h4>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-alipay"></i> 支付宝支付</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="alipay_enabled" value="1" {% if alipay_enabled == '1' %}checked{% endif %}>
+                        <label class="form-check-label">启用</label>
+                    </div>
+                    <div class="mb-2"><label class="form-label small">App ID</label><input name="alipay_app_id" class="form-control form-control-sm" value="{{ alipay_app_id }}" placeholder="2021xxxxxxxxxxxx"></div>
+                    <div class="mb-2"><label class="form-label small">应用私钥 (PEM)</label><textarea name="alipay_private_key" class="form-control form-control-sm" rows="3" placeholder="-----BEGIN RSA PRIVATE KEY-----">{{ alipay_private_key }}</textarea></div>
+                    <div class="mb-2"><label class="form-label small">支付宝公钥 (PEM)</label><textarea name="alipay_public_key" class="form-control form-control-sm" rows="3" placeholder="-----BEGIN PUBLIC KEY-----">{{ alipay_public_key }}</textarea></div>
+                    <div class="mb-2"><label class="form-label small">异步通知地址</label><input name="alipay_notify_url" class="form-control form-control-sm" value="{{ alipay_notify_url }}" placeholder="{{ alipay_callback_url }}"></div>
+                    <small class="text-muted">回调地址: {{ alipay_callback_url }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-wechat"></i> 微信支付</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="wechat_enabled" value="1" {% if wechat_enabled == '1' %}checked{% endif %}>
+                        <label class="form-check-label">启用</label>
+                    </div>
+                    <div class="mb-2"><label class="form-label small">AppID</label><input name="wechat_app_id" class="form-control form-control-sm" value="{{ wechat_app_id }}" placeholder="wx1234567890"></div>
+                    <div class="mb-2"><label class="form-label small">商户号 MchID</label><input name="wechat_mch_id" class="form-control form-control-sm" value="{{ wechat_mch_id }}" placeholder="1234567890"></div>
+                    <div class="mb-2"><label class="form-label small">API密钥</label><input name="wechat_api_key" class="form-control form-control-sm" value="{{ wechat_api_key }}" placeholder="32位密钥"></div>
+                    <div class="mb-2"><label class="form-label small">异步通知地址</label><input name="wechat_notify_url" class="form-control form-control-sm" value="{{ wechat_notify_url }}" placeholder="{{ wechat_callback_url }}"></div>
+                    <small class="text-muted">回调地址: {{ wechat_callback_url }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-toggles"></i> 通用设置</div>
+        <div class="card-body">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" name="pay_mock_mode" value="1" {% if pay_mock_mode == '1' %}checked{% endif %}>
+                <label class="form-check-label">Mock模式（测试用，无需真实凭证即可模拟支付）</label>
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg"></i> 保存设置</button>
+</form>
+{% endblock %}

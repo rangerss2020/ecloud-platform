@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% block title %}API调用文档{% endblock %}
+{% block content %}
+<style>
+    .docs-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .docs-content {
+        line-height: 1.8;
+        color: var(--text-primary);
+    }
+    .docs-content h1 {
+        font-family: 'Orbitron', monospace;
+        font-size: 1.8rem;
+        color: var(--accent);
+        text-shadow: 0 0 20px rgba(0,229,255,0.3);
+        border-bottom: 1px solid rgba(0,229,255,0.2);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: 2px;
+    }
+    .docs-content h2 {
+        font-size: 1.4rem;
+        color: var(--accent);
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        padding-left: 0.75rem;
+        border-left: 3px solid var(--accent);
+        letter-spacing: 1px;
+    }
+    .docs-content h3 {
+        font-size: 1.1rem;
+        color: #fff;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .docs-content h4 {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .docs-content p {
+        margin-bottom: 1rem;
+        color: var(--text-secondary);
+    }
+    .docs-content ul, .docs-content ol {
+        margin-bottom: 1rem;
+        padding-left: 1.5rem;
+        color: var(--text-secondary);
+    }
+    .docs-content li {
+        margin-bottom: 0.5rem;
+    }
+    .docs-content blockquote {
+        background: rgba(0,229,255,0.05);
+        border-left: 4px solid var(--accent);
+        padding: 1rem 1.5rem;
+        margin: 1rem 0;
+        border-radius: 0 8px 8px 0;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+    .docs-content code {
+        background: rgba(0,229,255,0.08);
+        color: var(--accent);
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-family: 'Consolas', 'Cascadia Code', monospace;
+        font-size: 0.9em;
+    }
+    .docs-content pre {
+        background: #0a0e17;
+        border: 1px solid rgba(0,229,255,0.15);
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+        overflow-x: auto;
+        position: relative;
+    }
+    .docs-content pre code {
+        background: transparent;
+        padding: 0;
+        font-size: 0.85rem;
+        line-height: 1.6;
+    }
+    .docs-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+        font-size: 0.86rem;
+    }
+    .docs-content th, .docs-content td {
+        border: 1px solid rgba(0,229,255,0.1);
+        padding: 0.75rem;
+        text-align: left;
+    }
+    .docs-content th {
+        background: rgba(0,229,255,0.05);
+        color: var(--accent);
+        font-weight: 600;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .docs-content td {
+        color: var(--text-secondary);
+    }
+    .docs-content tr:hover {
+        background: rgba(0,229,255,0.03);
+    }
+    .docs-content a {
+        color: var(--accent);
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+    .docs-content a:hover {
+        text-shadow: 0 0 10px rgba(0,229,255,0.5);
+    }
+    .toc-sidebar {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+    }
+    .toc-sidebar ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .toc-sidebar li {
+        margin: 0;
+        padding: 0;
+    }
+    .toc-sidebar a {
+        display: block;
+        padding: 0.5rem 0.75rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .toc-sidebar a:hover {
+        background: rgba(0,229,255,0.08);
+        color: var(--accent);
+    }
+    .toc-sidebar .toc-h2 > a {
+        font-weight: 600;
+        color: #fff;
+    }
+    .toc-sidebar .toc-h3 > a {
+        padding-left: 1.75rem;
+        font-size: 0.8rem;
+    }
+    .toc-sidebar .toc-h4 > a {
+        padding-left: 2.5rem;
+        font-size: 0.75rem;
+        color: var(--text-dim);
+    }
+    .section-nav {
+        background: linear-gradient(145deg, #111827, #0f172a);
+        border: 1px solid rgba(0,229,255,0.1);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+    .section-nav h5 {
+        color: var(--accent);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(0,229,255,0.1);
+    }
+    .scroll-indicator {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 3px;
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+        z-index: 9999;
+        transition: width 0.2s;
+    }
+</style>
+<div class="scroll-indicator" id="scrollIndicator"></div>
+
+<div class="docs-container">
+    <div class="page-title mb-4"><i class="bi bi-book-open"></i> API调用文档</div>
+    
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="section-nav toc-sidebar">
+                <h5><i class="bi bi-list-ul"></i> 文档目录</h5>
+                <nav id="toc">{{ toc_html|safe }}</nav>
+            </div>
+        </div>
+        <div class="col-lg-9">
+            <div class="glow-card">
+                <div class="card-body">
+                    <div class="docs-content" id="docsContent">
+                        {{ docs_content|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const scrollIndicator = document.getElementById('scrollIndicator');
+        
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            scrollIndicator.style.width = scrollPercent + '%';
+        });
+        
+        const preElements = document.querySelectorAll('pre');
+        preElements.forEach(function(pre) {
+            const code = pre.querySelector('code');
+            if (code) {
+                const language = code.className.replace('language-', '') || 'text';
+                const langBadge = document.createElement('span');
+                langBadge.style.cssText = `
+                    position: absolute;
+                    top: 8px;
+                    right: 12px;
+                    background: rgba(0,229,255,0.1);
+                    color: var(--accent);
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                `;
+                langBadge.textContent = language;
+                pre.style.position = 'relative';
+                pre.appendChild(langBadge);
+            }
+        });
+
+        document.querySelectorAll('#toc a').forEach(function(anchor) {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                var href = this.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    var target = document.getElementById(href.substring(1));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        setTimeout(function() { window.scrollBy(0, -100); }, 100);
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

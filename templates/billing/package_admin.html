@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}套餐管理{% endblock %}
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-box-seam"></i> 套餐管理</h4>
+<form method="get" class="input-group input-group-sm mb-3" style="max-width:250px">
+    <input name="q" class="form-control" placeholder="搜索套餐名称..." value="{{ search }}">
+    <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
+
+<button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#pkgModal" onclick="clearPkgForm()"><i class="bi bi-plus-circle"></i> 添加套餐</button>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>名称</th><th>价格</th><th>调用</th><th>Token</th><th>期限</th><th>模型</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for p in packages %}
+            <tr>
+                <td>{{ p.name }}</td>
+                <td>¥{{ p.price }}</td>
+                <td>{% if p.call_limit == 0 %}不限{% else %}{{ p.call_limit }}次{% endif %}</td>
+                <td>{% if p.token_limit == 0 %}不限{% else %}{{ p.token_limit }}{% endif %}</td>
+                <td>{% if p.duration_type == 'forever' %}永久{% else %}{{ p.duration_value }}{{ p.get_duration_type_display }}{% endif %}</td>
+                <td>{% if p.model_restrict %}<span class="badge bg-warning text-dark">{{ p.model_ids|length }}个{% else %}<span class="badge bg-info">全部{% endif %}</td>
+                <td><span class="badge {% if p.status == 'enabled' %}bg-success{% else %}bg-secondary{% endif %}">{{ p.get_status_display }}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editPkg({{ p.id }}, '{{ p.name|escapejs }}', '{{ p.price }}', {{ p.call_limit }}, {{ p.token_limit }}, '{{ p.duration_type }}', {{ p.duration_value }}, '{{ p.model_restrict|yesno:"1,0" }}', '{{ p.status }}', '{{ p.description|escapejs }}', {{ p.model_ids }})"><i class="bi bi-pencil"></i></button>
+                    <form method="post" class="d-inline" onsubmit="return confirm('确定删除？')">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ p.id }}"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center py-4" style="color:var(--text-dim)">暂无套餐</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="pkgModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="post" class="modal-content">{% csrf_token %}<input type="hidden" name="action" id="pAction" value="add"><input type="hidden" name="id" id="pId">
+            <div class="modal-header"><h5 class="modal-title" id="pTitle">添加套餐</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">名称</label><input name="name" id="pName" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label">价格</label><input name="price" id="pPrice" type="number" step="0.01" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label">状态</label><select name="status" id="pStatus" class="form-select"><option value="enabled">上架</option><option value="disabled">下架</option></select></div>
+                    <div class="col-md-4"><label class="form-label">调用次数(0=不限)</label><input name="call_limit" id="pCalls" type="number" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label">Token量(0=不限)</label><input name="token_limit" id="pTokens" type="number" class="form-control"></div>
+                    <div class="col-md-2"><label class="form-label">期限</label><select name="duration_type" id="pDurType" class="form-select"><option value="day">天</option><option value="month" selected>月</option><option value="year">年</option><option value="forever">永久</option></select></div>
+                    <div class="col-md-2"><label class="form-label">期限值</label><input name="duration_value" id="pDurVal" type="number" class="form-control" value="1" min="1"></div>
+                    <div class="col-md-3"><label class="form-label">模型限制</label><select name="model_restrict" id="pRestrict" class="form-select" onchange="this.value=='1'?document.getElementById('pModelPick').style.display='':document.getElementById('pModelPick').style.display='none'"><option value="0">不限制</option><option value="1">限制</option></select></div>
+                    <div class="col-12" id="pModelPick" style="display:none"><label class="form-label">可选模型</label><div class="d-flex flex-wrap gap-1">{% for m in all_models %}<label class="small"><input type="checkbox" name="model_ids" value="{{ m.id }}" class="me-1 pMCheck">{{ m.name }}</label>{% endfor %}</div></div>
+                    <div class="col-12"><label class="form-label">描述</label><textarea name="description" id="pDesc" class="form-control" rows="2"></textarea></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-primary">保存</button></div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function clearPkgForm(){document.getElementById('pAction').value='add';document.getElementById('pId').value='';document.getElementById('pTitle').textContent='添加套餐';document.getElementById('pName').value='';document.getElementById('pPrice').value='29.9';document.getElementById('pStatus').value='enabled';document.getElementById('pCalls').value='';document.getElementById('pTokens').value='';document.getElementById('pDurType').value='month';document.getElementById('pDurVal').value='1';document.getElementById('pRestrict').value='0';document.getElementById('pDesc').value='';document.getElementById('pModelPick').style.display='none';document.querySelectorAll('.pMCheck').forEach(c=>c.checked=false)}
+function editPkg(id,name,price,calls,tokens,dtype,dval,restrict,status,desc,modelIds){document.getElementById('pAction').value='edit';document.getElementById('pId').value=id;document.getElementById('pTitle').textContent='编辑套餐';document.getElementById('pName').value=name;document.getElementById('pPrice').value=price;document.getElementById('pStatus').value=status;document.getElementById('pCalls').value=calls||'';document.getElementById('pTokens').value=tokens||'';document.getElementById('pDurType').value=dtype;document.getElementById('pDurVal').value=dval;document.getElementById('pRestrict').value=restrict;document.getElementById('pDesc').value=desc;document.getElementById('pModelPick').style.display=restrict=='1'?'':'none';document.querySelectorAll('.pMCheck').forEach(c=>c.checked=modelIds.includes(parseInt(c.value)));new bootstrap.Modal('#pkgModal').show()}
+</script>
+{% endblock %}
