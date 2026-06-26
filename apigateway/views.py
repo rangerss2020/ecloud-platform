@@ -470,14 +470,8 @@ def chat_stream(request):
     history.append({'role': 'assistant', 'content': assistant_content})
     request.session['chat_history'] = history
 
-    if api_model.bill_type != 'free' and request.user.balance >= api_model.price:
-        request.user.balance -= api_model.price
-        request.user.save(update_fields=['balance'])
-        Transaction.objects.create(
-            user=request.user, type='consume', amount=-api_model.price,
-            balance_after=request.user.balance,
-            description=f'对话: {api_model.name}',
-        )
+    if api_model.bill_type != 'free':
+        deduct_balance(request.user, api_model.price, f'对话: {api_model.name}')
 
     return JsonResponse({
         'content': assistant_content,
