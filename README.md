@@ -62,6 +62,30 @@ ECloud 是一个基于 Django 构建的大模型 API 中转平台，提供用户
 ### 安装
 
 ```bash
+git clone https://github.com/rangerss2020/ecloud-platform.git
+cd ecloud-platform
+pip install -r requirements.txt
+mysql -uroot -p -e "CREATE DATABASE ecloud_platform DEFAULT CHARSET utf8mb4;"
+# 编辑 ecloud_platform/settings.py，设置数据库密码
+cp .env.example .env  # 配置环境变量
+python manage.py migrate
+python manage.py initdata
+```
+
+### 启动
+
+```bash
+# 开发环境
+python manage.py runserver 0.0.0.0:8000
+
+# 生产环境（16核推荐 32 线程）
+waitress-serve --port=8000 --threads=32 ecloud_platform.wsgi:application
+```
+- pip
+
+### 安装
+
+```bash
 # 克隆仓库
 git clone https://github.com/rangerss2020/ecloud-platform.git
 cd ecloud-platform
@@ -95,24 +119,36 @@ python manage.py runserver 0.0.0.0:8000
 
 ---
 
-## 📡 API 调用
+## 📡 API 调用（OpenAI 兼容）
 
-### Bearer Token 方式（推荐）
+### Bearer Token 方式
 
 ```python
 import requests
 
-resp = requests.post('http://127.0.0.1:8000/api/v1/deepseek-v3/',
+resp = requests.post('http://127.0.0.1:8000/v1/chat/completions',
     headers={'Authorization': f'Bearer {API_KEY}'},
     json={
-        'model': 'deepseek-v3',
-        'messages': [{'role': 'user', 'content': '你好'}]
+        'model': 'deepseek-r1',
+        'messages': [{'role': 'user', 'content': '你好'}],
+        'stream': False
     }
 )
-print(resp.json())
+print(resp.json()['choices'][0]['message']['content'])
 ```
 
-### 可用模型
+### 端点
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/v1/models` | GET | 模型列表 |
+| `/v1/chat/completions` | POST | 对话（支持流式 `stream: true`） |
+
+### 第三方工具接入
+
+- **Chatbox**：API 地址 `http://127.0.0.1:8000/v1`
+- **VSCode Cline**：API 地址 `http://127.0.0.1:8000`
+- **任何 OpenAI 兼容客户端**直接使用
 
 | 系列 | 模型 |
 |------|------|
@@ -156,12 +192,14 @@ seedance/
 ### 生产部署
 
 ```bash
-# Gunicorn (Linux)
-gunicorn ecloud_platform.wsgi:application -w 4 -b 0.0.0.0:8000
+# Waitress 多线程（Windows/Linux）
+waitress-serve --port=8000 --threads=32 ecloud_platform.wsgi:application
 
-# Waitress (Windows)
-waitress-serve --port=8000 ecloud_platform.wsgi:application
+# Gunicorn + Nginx（Linux 推荐）
+gunicorn ecloud_platform.wsgi:application -w 4 -k gevent -b 0.0.0.0:8000
 ```
+
+线程数推荐：`4 × CPU 物理核心`。前端建议加 Nginx 反代处理静态文件。
 
 ---
 

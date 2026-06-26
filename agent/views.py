@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Q
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F
@@ -49,13 +49,20 @@ def member_list(request):
         return redirect('dashboard')
 
     if request.user.role == 'admin':
-        members = User.objects.filter(role='member').select_related('parent_agent').order_by('-created_at')
+        qs = User.objects.filter(role='member').select_related('parent_agent')
     else:
-        members = request.user.sub_members.select_related('parent_agent').all().order_by('-created_at')
+        qs = request.user.sub_members.select_related('parent_agent').all()
 
-    paginator = Paginator(members, 20)
+    search = request.GET.get('q', '').strip()
+    if search:
+        qs = qs.filter(username__icontains=search) | qs.filter(email__icontains=search)
+
+    qs = qs.order_by('-created_at')
+    paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'agent/members.html', {'members': page_obj, 'page_obj': page_obj})
+    return render(request, 'agent/members.html', {
+        'members': page_obj, 'page_obj': page_obj, 'search': search,
+    })
 
 
 @login_required
@@ -212,9 +219,15 @@ def withdrawal_review(request):
 
         return redirect('withdrawal_review')
 
-    paginator = Paginator(Withdrawal.objects.select_related('agent__user').order_by('-created_at'), 10)
+    search = request.GET.get('q', '').strip()
+    qs = Withdrawal.objects.select_related('agent__user')
+    if search:
+        from django.db.models import Q
+        qs = qs.filter(Q(agent__user__username__icontains=search) | Q(remark__icontains=search))
+    paginator = Paginator(qs.order_by('-created_at'), 10)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'agent/withdrawal_review.html', {
         'withdrawals': page_obj,
         'page_obj': page_obj,
+        'search': search,
     })

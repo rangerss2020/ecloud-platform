@@ -430,7 +430,12 @@ def buy_package(request, package_id):
 
 @admin_required
 def admin_transactions(request):
-    qs = Transaction.objects.select_related('user').exclude(description__startswith='套餐').order_by('-created_at')
+    search = request.GET.get('q', '').strip()
+    qs = Transaction.objects.select_related('user').exclude(description__startswith='套餐')
+    if search:
+        from django.db.models import Q
+        qs = qs.filter(Q(user__username__icontains=search) | Q(description__icontains=search) | Q(related_order__icontains=search))
+    qs = qs.order_by('-created_at')
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'billing/admin_transactions.html', {'transactions': page_obj, 'page_obj': page_obj})
+    return render(request, 'billing/admin_transactions.html', {'transactions': page_obj, 'page_obj': page_obj, 'search': search})

@@ -2,6 +2,10 @@
 {% block title %}兑换码管理{% endblock %}
 {% block content %}
 <h4 class="mb-3"><i class="bi bi-ticket-perforated"></i> 兑换码管理</h4>
+<form method="get" class="input-group input-group-sm mb-3" style="max-width:250px">
+    <input name="q" class="form-control" placeholder="搜索兑换码/批次..." value="{{ search }}">
+    <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
 
 <div class="card mb-3">
     <div class="card-header"><i class="bi bi-plus-circle"></i> 批量生成</div>

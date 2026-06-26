@@ -7,7 +7,7 @@
             <div class="card-header"><i class="bi bi-send"></i> 调用 {{ api_model.name }}</div>
             <div class="card-body">
                 <div class="alert alert-info">
-                    <strong>{{ api_model.http_method }}</strong> <code>{{ request.scheme }}://{{ request.get_host }}/api/v1/{{ api_model.code }}/</code><br>
+                    <strong>{{ api_model.http_method }}</strong> <code>{{ request.scheme }}://{{ request.get_host }}/v1/chat/completions</code><br>
                     计费: <strong>{{ api_model.get_bill_type_display }}</strong>
                     {% if api_model.bill_type != 'free' %} | 单价: <strong>¥{{ api_model.price }}</strong> / 当前余额: <strong>¥{{ user.balance }}</strong>{% endif %}
                 </div>
@@ -45,7 +45,7 @@
             <div class="card-header"><i class="bi bi-info-circle"></i> 请求说明</div>
             <div class="card-body">
                 <p><strong>请求方法:</strong> {{ api_model.http_method }}</p>
-                <p><strong>调用地址:</strong> <code>{{ request.scheme }}://{{ request.get_host }}/api/v1/{{ api_model.code }}/</code></p>
+                <p><strong>调用地址:</strong> <code>{{ request.scheme }}://{{ request.get_host }}/v1/chat/completions</code></p>
                 <p><strong>计费方式:</strong> {{ api_model.get_bill_type_display }}</p>
                 {% if api_model.bill_type != 'free' %}
                 <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> 每次调用将扣除 <strong>¥{{ api_model.price }}</strong></p>

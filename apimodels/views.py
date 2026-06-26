@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 from collections import defaultdict
 from django.core.paginator import Paginator
-from .models import ApiModel
+from .models import ApiModel, Channel
 from billing.models import Transaction
 from agent.models import AgentProfile, CommissionRecord
 from users.models import User
@@ -202,9 +202,33 @@ def dashboard(request):
 
 @login_required
 def api_model_list(request):
-    paginator = Paginator(ApiModel.objects.select_related('channel').filter(status='enabled').order_by('channel__sort_order', 'sort_order'), 12)
+    from django.db.models import Q
+    qs = ApiModel.objects.select_related('channel').filter(status='enabled')
+
+    search = request.GET.get('q', '').strip()
+    if search:
+        qs = qs.filter(Q(name__icontains=search) | Q(code__icontains=search) | Q(description__icontains=search))
+
+    bill_type = request.GET.get('bill', '')
+    if bill_type in ('per_call', 'per_unit', 'free'):
+        qs = qs.filter(bill_type=bill_type)
+
+    vendor = request.GET.get('vendor', '')
+    if vendor:
+        qs = qs.filter(channel__code=vendor)
+
+    qs = qs.order_by('channel__sort_order', 'sort_order')
+    paginator = Paginator(qs, 12)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'apimodels/list.html', {'api_models': page_obj, 'page_obj': page_obj})
+
+    channels = Channel.objects.filter(status='enabled').order_by('sort_order')
+    view_mode = request.GET.get('view', 'card')
+
+    return render(request, 'apimodels/list.html', {
+        'api_models': page_obj, 'page_obj': page_obj,
+        'channels': channels, 'view_mode': view_mode,
+        'search': search, 'bill_type': bill_type, 'vendor': vendor,
+    })
 
 
 @login_required

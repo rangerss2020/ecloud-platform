@@ -66,7 +66,7 @@ def open_api(request, model_code):
         body_data = dict(request.POST.dict())
 
     to_remove = ['AccessKey', 'Timestamp', 'Signature', 'SignatureMethod',
-                 'SignatureNonce', 'SignatureVersion']
+                 'SignatureNonce', 'SignatureVersion', 'stream']
     for k in to_remove:
         body_data.pop(k, None)
 
@@ -122,5 +122,18 @@ def open_api(request, model_code):
 
     result.pop('_duration_ms', None)
     result.pop('_status_code', None)
+
+    if 'choices' in result:
+        for c in result['choices']:
+            msg = c.get('message', {})
+            if 'tool_calls' in msg and not msg['tool_calls']:
+                del msg['tool_calls']
+    result.pop('prefill_time', None)
+    result.pop('decode_time_arr', None)
+    result.pop('queue_wait_time', None)
+    for k in list(result.keys()):
+        if k not in ('id', 'object', 'created', 'model', 'choices', 'usage', 'requestId'):
+            result.pop(k, None)
+
     result.setdefault('requestId', '')
     return JsonResponse(result)

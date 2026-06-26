@@ -9,7 +9,7 @@
                 <table class="table table-bordered">
                     <tr><td width="120">模型编码</td><td><code>{{ api_model.code }}</code></td></tr>
                     <tr><td>请求方法</td><td><span class="badge bg-secondary">{{ api_model.http_method }}</span></td></tr>
-                    <tr><td>调用地址</td><td><code style="font-size:1rem;">{{ request.scheme }}://{{ request.get_host }}/api/v1/{{ api_model.code }}/</code></td></tr>
+                    <tr><td>调用地址</td><td><code style="font-size:1rem;">{{ request.scheme }}://{{ request.get_host }}/v1/chat/completions</code></td></tr>
                     <tr><td>计费方式</td><td>{{ api_model.get_bill_type_display }}{% if api_model.bill_type != 'free' %} - ¥{{ api_model.price }}{% endif %}</td></tr>
                     <tr><td>描述</td><td>{{ api_model.description|default:'-' }}</td></tr>
                 </table>

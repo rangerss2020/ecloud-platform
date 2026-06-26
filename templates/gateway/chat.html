@@ -58,13 +58,13 @@
                 {% endif %}
             </div>
             <div class="card-footer" style="border-top:1px solid rgba(0,229,255,0.08)">
-                <form method="post">
+                <form onsubmit="sendMessage(event)">
                     {% csrf_token %}
-                    <input type="hidden" name="model_id" value="{{ selected_model.id|default:'' }}">
+                    <input type="hidden" name="model_id" id="chatModelId" value="{{ selected_model.id|default:'' }}">
                     <div class="input-group">
-                        <input type="text" name="message" class="form-control" placeholder="输入消息..." required autofocus autocomplete="off"
+                        <input type="text" id="chatInput" class="form-control" placeholder="输入消息..." autofocus autocomplete="off"
                             {% if not selected_model %}disabled{% endif %}>
-                        <button class="btn btn-primary" type="submit" {% if not selected_model %}disabled{% endif %}>
+                        <button class="btn btn-primary" type="submit" id="chatSendBtn" {% if not selected_model %}disabled{% endif %}>
                             <i class="bi bi-send"></i>
                         </button>
                     </div>
@@ -79,5 +79,103 @@
 <script>
 var box = document.getElementById('chatBox');
 box.scrollTop = box.scrollHeight;
+
+async function sendMessage(e) {
+    e.preventDefault();
+    var input = document.getElementById('chatInput');
+    var btn = document.getElementById('chatSendBtn');
+    var msg = input.value.trim();
+    if (!msg) return;
+
+    var mid = document.getElementById('chatModelId').value;
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // User message
+    var userDiv = document.createElement('div');
+    userDiv.className = 'mb-3 text-end';
+    userDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-person"></i> 你</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)">'+escapeHtml(msg)+'</pre></div>';
+    box.appendChild(userDiv);
+    box.scrollTop = box.scrollHeight;
+    input.value = '';
+    input.disabled = true;
+    btn.disabled = true;
+
+    // Thinking bubble with timer
+    var thinkDiv = document.createElement('div');
+    thinkDiv.className = 'mb-3';
+    var thinkId = 'think_'+Date.now();
+    thinkDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><span class="spinner-border spinner-border-sm me-1"></span> 思考中 <span id="'+thinkId+'">0s</span></div>';
+    var thinkBody = document.createElement('div');
+    thinkBody.className = 'd-inline-block p-2 rounded-3 text-start';
+    thinkBody.style.cssText = 'max-width:85%;background:transparent;border:1px dashed rgba(124,77,255,0.2);display:none';
+    thinkBody.innerHTML = '<pre id="thinkContent" style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.8rem;color:var(--text-dim)"></pre>';
+    thinkDiv.appendChild(thinkBody);
+
+    var aiDiv = document.createElement('div');
+    aiDiv.className = 'mb-3';
+    aiDiv.style.display = 'none';
+
+    box.appendChild(thinkDiv);
+    box.appendChild(aiDiv);
+    box.scrollTop = box.scrollHeight;
+
+    var timerEl = document.getElementById(thinkId);
+    var startTime = Date.now();
+    var timer = setInterval(function(){
+        if (timerEl) {
+            var elapsed = Math.floor((Date.now() - startTime) / 1000);
+            timerEl.textContent = elapsed + 's';
+        }
+    }, 200);
+
+    try {
+        var resp = await fetch('/gateway/chat/stream/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf},
+            body: 'model_id='+encodeURIComponent(mid)+'&message='+encodeURIComponent(msg)
+        });
+        var data = await resp.json();
+        clearInterval(timer);
+        
+        var elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timerEl.innerHTML = elapsed+'s <span style="color:#00e676">完成</span>';
+        thinkDiv.querySelector('.spinner-border').remove();
+
+        // Check for error
+        if (data.error) {
+            aiDiv.style.display = 'block';
+            aiDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-robot"></i> AI</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.2)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:#ff1744">[错误] '+escapeHtml(data.error)+'</pre></div>';
+        } else {
+            var content = data.content || '';
+            
+            // Parse think section
+            var thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+            var thinkText = thinkMatch ? thinkMatch[1].trim() : '';
+            var answerText = thinkMatch ? content.replace(/<think>[\s\S]*?<\/think>/,'').trim() : content;
+
+            // Show think if exists
+            if (thinkText) {
+                document.getElementById('thinkContent').textContent = thinkText;
+                thinkBody.style.display = 'inline-block';
+            }
+
+            // Show answer
+            aiDiv.style.display = 'block';
+            aiDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-robot"></i> AI</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(124,77,255,0.08);border:1px solid rgba(124,77,255,0.15)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)">'+escapeHtml(answerText)+'</pre></div>';
+        }
+        box.scrollTop = box.scrollHeight;
+    } catch(e) {
+        clearInterval(timer);
+        timerEl.innerHTML = '<span style="color:#ff1744">失败</span>';
+        thinkDiv.querySelector('.spinner-border').remove();
+    }
+
+    input.disabled = false;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send"></i>';
+    input.focus();
+}
+
+function escapeHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 {% endblock %}

@@ -56,7 +56,10 @@
                         <input class="form-control" value="¥{{ agent_profile.total_commission }}" disabled>
                     </div>
                     {% endif %}
-                    <button type="submit" class="btn btn-primary w-100">保存</button>
+                    <div class="d-flex gap-2">
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary flex-grow-1">取消</a>
+                        <button type="submit" class="btn btn-primary flex-grow-1">保存</button>
+                    </div>
                 </form>
             </div>
         </div>

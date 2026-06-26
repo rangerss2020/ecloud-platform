@@ -5,6 +5,12 @@ from django.contrib import messages
 from django.conf import settings
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.http import JsonResponse, StreamingHttpResponse
+from django.db.models import Q
+import json
+import os
+import time
+import requests
 import json
 from apimodels.models import Channel, ApiModel, ApiParameter
 from billing.models import Transaction
@@ -58,14 +64,23 @@ def manage_channels(request):
 
     paginator = Paginator(channels, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'admin_manage/channels.html', {'channels': page_obj, 'page_obj': page_obj})
+    search = request.GET.get('q', '').strip()
+    if search:
+        from django.db.models import Q
+        page_obj = Paginator(Channel.objects.filter(Q(name__icontains=search) | Q(code__icontains=search)).order_by('sort_order'), 20).get_page(request.GET.get('page'))
+    return render(request, 'admin_manage/channels.html', {'channels': page_obj, 'page_obj': page_obj, 'search': search})
 
 
 @admin_required
 def manage_models(request):
     channels = Channel.objects.filter(status='enabled').order_by('sort_order')
-    all_models = ApiModel.objects.select_related('channel').all().order_by('channel__sort_order', 'sort_order')
-    paginator = Paginator(all_models, 15)
+    qs = ApiModel.objects.select_related('channel').all()
+    search = request.GET.get('q', '').strip()
+    if search:
+        from django.db.models import Q
+        qs = qs.filter(Q(name__icontains=search) | Q(code__icontains=search))
+    qs = qs.order_by('channel__sort_order', 'sort_order')
+    paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     if request.method == 'POST':
@@ -167,6 +182,7 @@ def manage_models(request):
         'models': page_obj,
         'page_obj': page_obj,
         'param_types': ApiParameter.PARAM_TYPE_CHOICES,
+        'search': search,
     })
 
 
@@ -279,9 +295,13 @@ def manage_sensitive_words(request):
             messages.success(request, '已删除')
         return redirect('manage_sensitive_words')
 
-    paginator = Paginator(SensitiveWord.objects.all().order_by('-created_at'), 30)
+    search = request.GET.get('q', '').strip()
+    qs = SensitiveWord.objects.all()
+    if search:
+        qs = qs.filter(word__icontains=search)
+    paginator = Paginator(qs.order_by('-created_at'), 30)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'admin_manage/sensitive_words.html', {'words': page_obj, 'page_obj': page_obj})
+    return render(request, 'admin_manage/sensitive_words.html', {'words': page_obj, 'page_obj': page_obj, 'search': search})
 
 
 @login_required
@@ -309,12 +329,16 @@ def chat(request):
         # 按模型参数构造请求体
         body = {}
         params = {p.param_name: p for p in api_model.parameters.all()}
-        if 'messages' in params:
+        if 'messages' in params or 'model' in params:
+            if 'messages' in params:
+                body['messages'] = history
+            elif 'prompt' in params:
+                body['prompt'] = user_message
+            if 'model' in params:
+                body['model'] = params['model'].default_value or 'default'
+        else:
+            body['model'] = api_model.code
             body['messages'] = history
-        elif 'prompt' in params:
-            body['prompt'] = user_message
-        if 'model' in params:
-            body['model'] = params['model'].default_value or 'default'
 
         filtered_body, input_hits = filter_instance.filter_body(body)
 
@@ -386,4 +410,78 @@ def chat(request):
 def clear_chat(request):
     request.session['chat_history'] = []
     return redirect('chat')
+
+
+@login_required
+def chat_stream(request):
+    import json as json_lib
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    model_id = request.POST.get('model_id', '')
+    user_message = request.POST.get('message', '').strip()
+
+    if not user_message:
+        return JsonResponse({'error': 'empty'})
+
+    api_model = get_object_or_404(ApiModel.objects.select_related('channel'), id=model_id, status='enabled')
+    channel = api_model.channel
+
+    if channel.auth_type != 'bearer':
+        return JsonResponse({'error': 'unsupported auth'})
+
+    history = request.session.get('chat_history', [])
+    history.append({'role': 'user', 'content': user_message})
+
+    body = {'model': api_model.code, 'messages': history}
+    params = {p.param_name: p for p in api_model.parameters.all()}
+    if 'model' in params:
+        body['model'] = params['model'].default_value or api_model.code
+
+    filtered_body, input_hits = filter_instance.filter_body(body)
+    if any(filter_instance._words.get(h, {}).get('level') == 'block' for h in input_hits if h in filter_instance._words):
+        return JsonResponse({'error': 'blocked'})
+
+    url = f'{channel.base_url}{api_model.servlet_path}'
+    headers = {'Authorization': f'Bearer {channel.api_key}', 'Content-Type': 'application/json'}
+    start_time = time.time()
+
+    try:
+        resp = requests.post(url, json=filtered_body, headers=headers, timeout=120)
+        resp.raise_for_status()
+        result = resp.json()
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+    duration_ms = int((time.time() - start_time) * 1000)
+    assistant_content = ''
+    choices = result.get('choices', [])
+    if choices:
+        msg = choices[0].get('message', {})
+        assistant_content = msg.get('content', '') or choices[0].get('text', '')
+    if not assistant_content:
+        assistant_content = json_lib.dumps(result, ensure_ascii=False)
+
+    filtered_content, _ = filter_instance.filter_body(assistant_content)
+    if filtered_content:
+        assistant_content = filtered_content
+
+    history.append({'role': 'assistant', 'content': assistant_content})
+    request.session['chat_history'] = history
+
+    if api_model.bill_type != 'free' and request.user.balance >= api_model.price:
+        request.user.balance -= api_model.price
+        request.user.save(update_fields=['balance'])
+        Transaction.objects.create(
+            user=request.user, type='consume', amount=-api_model.price,
+            balance_after=request.user.balance,
+            description=f'对话: {api_model.name}',
+        )
+
+    return JsonResponse({
+        'content': assistant_content,
+        'duration_ms': duration_ms,
+        'cost': float(api_model.price),
+    })
 

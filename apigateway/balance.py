@@ -47,12 +47,7 @@ def deduct_balance(user, amount, description, api_model=None, tokens_consumed=0)
                 pkg.status = 'used_up'
                 pkg.save(update_fields=['status'])
 
-            Transaction.objects.create(
-                user=user, type='consume', amount=0,
-                balance_after=user.balance,
-                description=f'套餐消费: {description}',
-            )
-            return True, user.balance
+        return True, user.balance
 
     if user.balance < amount:
         return False, user.balance

@@ -1,6 +1,6 @@
 from django.contrib import admin
-from django.urls import path, include, re_path
-from apigateway.openapi import open_api
+from django.urls import path, include
+from apigateway.openai_compat import openai_models, openai_chat
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -9,5 +9,8 @@ urlpatterns = [
     path('billing/', include('billing.urls')),
     path('agent/', include('agent.urls')),
     path('gateway/', include('apigateway.urls')),
-    re_path(r'^api/v1/(?P<model_code>[a-zA-Z0-9_]+)/$', open_api, name='open_api'),
+    path('v1/models', openai_models, name='openai_models'),
+    path('v1/chat/completions', openai_chat, name='openai_chat'),
+    path('chat/completions', openai_chat, name='chat_compat'),
+    path('models', openai_models, name='models_compat'),
 ]

@@ -39,11 +39,18 @@ class SensitiveFilter:
 
     def filter_body(self, data):
         if isinstance(data, str):
-            return self._filter_string(data, 'input')
+            result, hits = self._filter_string(data, 'input')
+            return result, hits
         if isinstance(data, dict):
             return self._filter_dict(data)
         if isinstance(data, list):
-            return [self.filter_body(item) for item in data]
+            results = []
+            all_hits = []
+            for item in data:
+                result, hits = self.filter_body(item)
+                results.append(result)
+                all_hits.extend(hits)
+            return results, all_hits
         return data, []
 
     def _filter_dict(self, d):
