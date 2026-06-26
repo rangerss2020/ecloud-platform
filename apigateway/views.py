@@ -451,8 +451,8 @@ def chat_stream(request):
         resp = requests.post(url, json=filtered_body, headers=headers, timeout=120)
         resp.raise_for_status()
         result = resp.json()
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    except Exception:
+        return JsonResponse({'error': 'Upstream service unavailable'}, status=500)
 
     duration_ms = int((time.time() - start_time) * 1000)
     assistant_content = ''

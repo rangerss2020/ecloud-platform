@@ -1,4 +1,4 @@
-# ECloud API 管理平台 - 部署指南
+# ECloud API 平台 - 部署指南
 
 ## 环境要求
 
@@ -6,71 +6,62 @@
 |------|------|
 | Python | 3.8+ |
 | MySQL | 5.7+ |
-| pip | 20+ |
 
-## 一键部署
+## 快速部署
 
 ```bash
-# 1. 克隆项目
-cd seedance
-
-# 2. 安装依赖
+# 1. 安装依赖
 pip install -r requirements.txt
 
-# 3. 创建数据库（需提前安装MySQL）
+# 2. 创建数据库
 mysql -uroot -p -e "CREATE DATABASE ecloud_platform DEFAULT CHARSET utf8mb4;"
 
-# 4. 修改数据库连接信息
-# 编辑 ecloud_platform/settings.py 中的 DATABASES 配置
+# 3. 配置数据库密码
+# 编辑 ecloud_platform/settings.py 中的 DATABASES.PASSWORD
+# 或设置环境变量: export DB_PASSWORD=your_password
 
-# 5. 初始化数据库和数据
+# 4. 初始化
 python manage.py migrate
 python manage.py initdata
 
-# 6. 启动服务
-python manage.py runserver 0.0.0.0:8000
+# 5. 收集静态文件
+python manage.py collectstatic --noinput
+
+# 6. 启动（生产模式）
+waitress-serve --port=8000 --threads=16 ecloud_platform.wsgi:application
 ```
 
-## 配置说明
+## 线程数建议
 
-### 数据库配置 (ecloud_platform/settings.py)
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ecloud_platform',
-        'USER': 'root',
-        'PASSWORD': 'your_password',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-    }
-}
+`线程数 = CPU核心数 × 2`，I/O 密集型可适当调高。
+
+## Docker 部署
+
+```bash
+cp .env.example .env
+docker-compose up -d
 ```
 
-### 默认测试账号
+## 默认账号
+
 | 角色 | 用户名 | 密码 |
 |------|--------|------|
 | 管理员 | admin | admin123 |
 | 代理 | agent01 | agent123 |
 | 会员 | member01 | member123 |
 
-### 生产环境启动
-```bash
-# 使用 gunicorn (Linux)
-pip install gunicorn
-gunicorn ecloud_platform.wsgi:application -w 4 -b 0.0.0.0:8000
+## 技术栈
 
-# 或使用 waitress (Windows)
-pip install waitress
-waitress-serve --port=8000 ecloud_platform.wsgi:application
-```
+- **Web 服务器**: Waitress（多线程）+ WhiteNoise（静态文件）
+- **后端**: Django 3.2
+- **数据库**: MySQL 5.7
+- **前端**: Bootstrap 5 + Chart.js（全本地化）
 
-## 初始化数据说明
+## 初始化数据
 
 `python manage.py initdata` 自动创建：
-- 3个测试用户
-- 1个移动云MaaS渠道 (Bearer Token认证)
-- 21个AI大模型
+- 3 个测试用户（含 API Key）
+- 21 个 AI 大模型
+- 4 个套餐（体验包/基础版/专业版/企业版）
 - 内置敏感词
-- 默认充值快捷金额配置
-- 用户API Key
+- 充值快捷金额 + 赠送配置

@@ -76,8 +76,8 @@ def openai_chat(request):
             method='POST', url=url, headers=upstream_headers,
             data=body, stream=is_stream, timeout=120,
         )
-    except Exception as e:
-        return JsonResponse({'error': {'message': str(e), 'type': 'server_error'}}, status=502)
+    except Exception:
+        return JsonResponse({'error': {'message': 'Upstream service unavailable', 'type': 'server_error'}}, status=502)
 
     duration_ms = int((time.time() - start_time) * 1000)
 
