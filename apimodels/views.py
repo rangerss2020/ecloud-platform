@@ -32,7 +32,6 @@ def dashboard(request):
     filter_model = request.GET.get('fm', '').strip()
     date_from = request.GET.get('from', '').strip()
     date_to = request.GET.get('to', '').strip()
-    today = timezone.now().date()
 
     if user.role == 'admin':
         rec_qs = ApiRequestRecord.objects.select_related('user', 'api_model').all()
@@ -43,7 +42,7 @@ def dashboard(request):
         rec_qs = ApiRequestRecord.objects.select_related('user', 'api_model').filter(user=user)
     if date_from:
         try:
-            dt_from = timezone.make_aware(dt.strptime(date_from, '%Y-%m-%d'))
+            dt_from = dt.strptime(date_from, '%Y-%m-%d')
             rec_qs = rec_qs.filter(created_at__gte=dt_from)
         except ValueError:
             pass
@@ -100,7 +99,7 @@ def dashboard(request):
     tokens_per_day = []
     now = timezone.now()
     for i in range(6, -1, -1):
-        d_start = timezone.make_aware(dt(now.year, now.month, now.day)) - timedelta(days=6-i)
+        d_start = dt(now.year, now.month, now.day) - timedelta(days=6-i)
         d_end = d_start + timedelta(days=1)
         days.append(d_start.strftime('%m-%d'))
         count = base_qs.filter(created_at__gte=d_start, created_at__lt=d_end).count()
@@ -125,6 +124,8 @@ def dashboard(request):
     trans_colors = ['#00e676' if t.type == 'recharge' else '#ff1744' if t.type == 'consume' else '#7c4dff' for t in reversed(trans)]
 
     today = timezone.now().date()
+    today_start = dt(today.year, today.month, today.day)
+    today_end = today_start + timedelta(days=1)
     today_recharge = Decimal('0')
     today_consume = Decimal('0')
     total_consume = Decimal('0')
@@ -144,9 +145,9 @@ def dashboard(request):
     total_tokens = 0
 
     if user.role == 'admin':
-        today_recharge = Transaction.objects.filter(type='recharge', created_at__date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        today_recharge = Transaction.objects.filter(type='recharge', created_at__gte=today_start, created_at__lt=today_end).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         today_rechargers = User.objects.filter(
-            transaction__type='recharge', transaction__created_at__date=today
+            transaction__type='recharge', transaction__created_at__gte=today_start, transaction__created_at__lt=today_end
         ).annotate(today_amount=Sum('transaction__amount')).distinct()[:10]
         total_recharge = Transaction.objects.filter(type='recharge').aggregate(total=Sum('amount'))['total'] or Decimal('0')
         agent_count = AgentProfile.objects.count()
@@ -158,17 +159,17 @@ def dashboard(request):
     elif user.role == 'agent':
         profile = AgentProfile.objects.filter(user=user).first()
         if profile:
-            today_commission = CommissionRecord.objects.filter(agent=profile, created_at__date=today).aggregate(total=Sum('commission_amount'))['total'] or Decimal('0')
+            today_commission = CommissionRecord.objects.filter(agent=profile, created_at__gte=today_start, created_at__lt=today_end).aggregate(total=Sum('commission_amount'))['total'] or Decimal('0')
             total_commission = CommissionRecord.objects.filter(agent=profile, status='settled').aggregate(total=Sum('commission_amount'))['total'] or Decimal('0')
             sub_total_consume = Transaction.objects.filter(user__parent_agent=user, type='consume').aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            sub_today_consume = Transaction.objects.filter(user__parent_agent=user, type='consume', created_at__date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            sub_today_consume = Transaction.objects.filter(user__parent_agent=user, type='consume', created_at__gte=today_start, created_at__lt=today_end).aggregate(total=Sum('amount'))['total'] or Decimal('0')
             sub_tokens = ApiRequestRecord.objects.filter(user__parent_agent=user).aggregate(
                 total=Sum('prompt_tokens') + Sum('completion_tokens')
             )['total'] or 0
             sub_calls = ApiRequestRecord.objects.filter(user__parent_agent=user).count()
             sub_member_count = User.objects.filter(parent_agent=user).count()
     else:
-        today_consume = Transaction.objects.filter(user=user, type='consume', created_at__date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        today_consume = Transaction.objects.filter(user=user, type='consume', created_at__gte=today_start, created_at__lt=today_end).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         total_consume = Transaction.objects.filter(user=user, type='consume').aggregate(total=Sum('amount'))['total'] or Decimal('0')
         total_recharge = Transaction.objects.filter(user=user, type='recharge').aggregate(total=Sum('amount'))['total'] or Decimal('0')
         total_tokens = ApiRequestRecord.objects.filter(user=user).aggregate(

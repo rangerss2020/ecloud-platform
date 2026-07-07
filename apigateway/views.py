@@ -844,12 +844,12 @@ def admin_api_records(request):
         qs = qs.filter(api_model__code=filter_model)
     if date_from:
         try:
-            qs = qs.filter(created_at__gte=timezone.make_aware(dt.strptime(date_from, '%Y-%m-%d')))
+            qs = qs.filter(created_at__gte=dt.strptime(date_from, '%Y-%m-%d'))
         except ValueError:
             pass
     if date_to:
         try:
-            qs = qs.filter(created_at__lt=timezone.make_aware(dt.strptime(date_to, '%Y-%m-%d')) + timedelta(days=1))
+            qs = qs.filter(created_at__lt=dt.strptime(date_to, '%Y-%m-%d') + timedelta(days=1))
         except ValueError:
             pass
 
