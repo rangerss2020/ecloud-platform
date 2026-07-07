@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count
 from django.http import HttpResponse, Http404
@@ -6,10 +6,10 @@ import os
 import mimetypes
 from django.db.models.functions import TruncDate
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime as dt
 from collections import defaultdict
 from django.core.paginator import Paginator
-from .models import ApiModel, Channel
+from .models import ApiModel, Channel, SiteConfig
 from billing.models import Transaction
 from agent.models import AgentProfile, CommissionRecord
 from users.models import User
@@ -28,36 +28,98 @@ def dashboard(request):
     api_models = p1.get_page(request.GET.get('page'))
     p2 = Paginator(ApiRequestRecord.objects.filter(user=user).order_by('-created_at'), 10)
     recent_records = p2.get_page(request.GET.get('page2'))
+
+    filter_model = request.GET.get('fm', '').strip()
+    date_from = request.GET.get('from', '').strip()
+    date_to = request.GET.get('to', '').strip()
+    today = timezone.now().date()
+
+    if user.role == 'admin':
+        rec_qs = ApiRequestRecord.objects.select_related('user', 'api_model').all()
+    elif user.role == 'agent':
+        sub_ids = list(user.sub_members.values_list('id', flat=True))
+        rec_qs = ApiRequestRecord.objects.select_related('user', 'api_model').filter(user_id__in=sub_ids)
+    else:
+        rec_qs = ApiRequestRecord.objects.select_related('user', 'api_model').filter(user=user)
+    if date_from:
+        try:
+            dt_from = timezone.make_aware(dt.strptime(date_from, '%Y-%m-%d'))
+            rec_qs = rec_qs.filter(created_at__gte=dt_from)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt_to = timezone.make_aware(dt.strptime(date_to, '%Y-%m-%d')) + timedelta(days=1)
+            rec_qs = rec_qs.filter(created_at__lt=dt_to)
+        except ValueError:
+            pass
+    if filter_model:
+        rec_qs = rec_qs.filter(api_model__code=filter_model)
+    rec_qs = rec_qs.order_by('-created_at')
+    p2 = Paginator(rec_qs, 10)
+    recent_records = p2.get_page(request.GET.get('page2'))
+
+    def _get_tokens(rd):
+        if isinstance(rd, dict):
+            b = rd.get('body', {})
+            if isinstance(b, dict):
+                u = b.get('usage', {})
+                if isinstance(u, dict):
+                    return u.get('prompt_tokens', 0) or 0, u.get('completion_tokens', 0) or 0
+        return 0, 0
+
+    for rec in recent_records:
+        if rec.prompt_tokens or rec.completion_tokens:
+            rec.token_count = f"{rec.prompt_tokens}+{rec.completion_tokens}"
+        else:
+            pt, ct = _get_tokens(rec.response_data)
+            rec.token_count = f"{pt}+{ct}" if pt or ct else None
+
+    all_models_list = ApiModel.objects.filter(status='enabled').order_by('channel__sort_order', 'sort_order')
+
     recent_trans = Transaction.objects.filter(user=user).order_by('-created_at')[:10]
 
-    total_calls = ApiRequestRecord.objects.filter(user=user).count()
-    total_cost = ApiRequestRecord.objects.filter(user=user).aggregate(
-        total=Sum('cost')
-    )['total'] or 0
+    if user.role == 'admin':
+        base_qs = ApiRequestRecord.objects.all()
+        tx_qs = Transaction.objects.all()
+        total_calls = ApiRequestRecord.objects.count()
+    elif user.role == 'agent':
+        sub_ids = list(user.sub_members.values_list('id', flat=True))
+        base_qs = ApiRequestRecord.objects.filter(user_id__in=sub_ids)
+        tx_qs = Transaction.objects.filter(user_id__in=sub_ids)
+        total_calls = base_qs.count()
+    else:
+        base_qs = ApiRequestRecord.objects.filter(user=user)
+        tx_qs = Transaction.objects.filter(user=user)
+        total_calls = base_qs.count()
 
-    # 每日调用趋势 (最近7天)
+    total_cost = base_qs.aggregate(total=Sum('cost'))['total'] or 0
+
     days = []
     calls_per_day = []
-    today = timezone.now().date()
+    tokens_per_day = []
+    now = timezone.now()
     for i in range(6, -1, -1):
-        d = today - timedelta(days=i)
-        days.append(d.strftime('%m-%d'))
-        count = ApiRequestRecord.objects.filter(
-            user=user, created_at__date=d
-        ).count()
+        d_start = timezone.make_aware(dt(now.year, now.month, now.day)) - timedelta(days=6-i)
+        d_end = d_start + timedelta(days=1)
+        days.append(d_start.strftime('%m-%d'))
+        count = base_qs.filter(created_at__gte=d_start, created_at__lt=d_end).count()
         calls_per_day.append(count)
+        tks = 0
+        try:
+            for rec in base_qs.filter(created_at__gte=d_start, created_at__lt=d_end).values_list('prompt_tokens', 'completion_tokens'):
+                tks += (rec[0] or 0) + (rec[1] or 0)
+        except Exception:
+            pass
+        tokens_per_day.append(tks)
 
-    # 模型费用分布
-    model_costs = ApiRequestRecord.objects.filter(
-        user=user, cost__gt=0
-    ).values('api_model__name').annotate(
+    model_costs = base_qs.filter(cost__gt=0).values('api_model__name').annotate(
         total=Sum('cost')
     ).order_by('-total')[:8]
     cost_labels = [m['api_model__name'] or '未知' for m in model_costs]
     cost_data = [float(m['total']) for m in model_costs]
 
-    # 交易流水 (最近10条金额)
-    trans = Transaction.objects.filter(user=user).order_by('-created_at')[:12]
+    trans = tx_qs.order_by('-created_at')[:12]
     trans_labels = [t.created_at.strftime('%m-%d %H:%M') for t in reversed(trans)]
     trans_data = [float(t.amount) for t in reversed(trans)]
     trans_colors = ['#00e676' if t.type == 'recharge' else '#ff1744' if t.type == 'consume' else '#7c4dff' for t in reversed(trans)]
@@ -89,18 +151,9 @@ def dashboard(request):
         total_recharge = Transaction.objects.filter(type='recharge').aggregate(total=Sum('amount'))['total'] or Decimal('0')
         agent_count = AgentProfile.objects.count()
         member_count = User.objects.filter(role='member').count()
-        admin_tokens = 0
-        try:
-            recs = ApiRequestRecord.objects.filter(status='success').values_list('response_data', flat=True)[:1000]
-            for resp in recs:
-                if isinstance(resp, dict):
-                    b = resp.get('body', {})
-                    if isinstance(b, dict):
-                        u = b.get('usage', {})
-                        if isinstance(u, dict):
-                            admin_tokens += int(u.get('total_tokens', 0))
-        except Exception:
-            pass
+        admin_tokens = ApiRequestRecord.objects.aggregate(
+            total=Sum('prompt_tokens') + Sum('completion_tokens')
+        )['total'] or 0
         admin_total_calls = ApiRequestRecord.objects.count()
     elif user.role == 'agent':
         profile = AgentProfile.objects.filter(user=user).first()
@@ -109,40 +162,18 @@ def dashboard(request):
             total_commission = CommissionRecord.objects.filter(agent=profile, status='settled').aggregate(total=Sum('commission_amount'))['total'] or Decimal('0')
             sub_total_consume = Transaction.objects.filter(user__parent_agent=user, type='consume').aggregate(total=Sum('amount'))['total'] or Decimal('0')
             sub_today_consume = Transaction.objects.filter(user__parent_agent=user, type='consume', created_at__date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            sub_tokens = 0
-            try:
-                records = ApiRequestRecord.objects.filter(user__parent_agent=user, status='success').values_list('response_data', flat=True)[:500]
-                for resp in records:
-                    if isinstance(resp, dict):
-                        b = resp.get('body', {})
-                        if isinstance(b, dict):
-                            u = b.get('usage', {})
-                            if isinstance(u, dict):
-                                sub_tokens += int(u.get('total_tokens', 0))
-            except Exception:
-                pass
+            sub_tokens = ApiRequestRecord.objects.filter(user__parent_agent=user).aggregate(
+                total=Sum('prompt_tokens') + Sum('completion_tokens')
+            )['total'] or 0
             sub_calls = ApiRequestRecord.objects.filter(user__parent_agent=user).count()
             sub_member_count = User.objects.filter(parent_agent=user).count()
     else:
         today_consume = Transaction.objects.filter(user=user, type='consume', created_at__date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         total_consume = Transaction.objects.filter(user=user, type='consume').aggregate(total=Sum('amount'))['total'] or Decimal('0')
         total_recharge = Transaction.objects.filter(user=user, type='recharge').aggregate(total=Sum('amount'))['total'] or Decimal('0')
-        try:
-            from django.db.models.functions import Cast
-            from django.db.models import IntegerField
-            token_records = ApiRequestRecord.objects.filter(
-                user=user, status='success',
-                response_data__isnull=False
-            ).values_list('response_data', flat=True)[:500]
-            for resp in token_records:
-                if isinstance(resp, dict):
-                    body = resp.get('body', {})
-                    if isinstance(body, dict):
-                        usage = body.get('usage', {})
-                        if isinstance(usage, dict):
-                            total_tokens += int(usage.get('total_tokens', 0))
-        except Exception:
-            pass
+        total_tokens = ApiRequestRecord.objects.filter(user=user).aggregate(
+            total=Sum('prompt_tokens') + Sum('completion_tokens')
+        )['total'] or 0
 
     # 按日累计交易(最近14天)
     from django.db import connection
@@ -191,6 +222,7 @@ def dashboard(request):
         'user': user,
         'chart_days': days,
         'chart_calls': calls_per_day,
+        'chart_tokens': tokens_per_day,
         'cost_labels': cost_labels,
         'cost_data': cost_data,
         'trans_labels': trans_labels,
@@ -199,6 +231,10 @@ def dashboard(request):
         'daily_labels': list(daily_data.keys()),
         'daily_recharge': [daily_data[k]['r'] for k in daily_data],
         'daily_consume': [daily_data[k]['c'] for k in daily_data],
+        'date_from': date_from,
+        'date_to': date_to,
+        'filter_model': filter_model,
+        'all_models_list': all_models_list,
     }
     return render(request, 'dashboard.html', ctx)
 
@@ -206,6 +242,7 @@ def dashboard(request):
 @login_required
 def api_model_list(request):
     from django.db.models import Q
+    from apimodels.models import Capability
     qs = ApiModel.objects.select_related('channel').filter(status='enabled')
 
     search = request.GET.get('q', '').strip()
@@ -220,17 +257,34 @@ def api_model_list(request):
     if vendor:
         qs = qs.filter(channel__code=vendor)
 
+    cap = request.GET.get('cap', '').strip()
+    if cap:
+        qs = qs.filter(capabilities__code=cap).distinct()
+
     qs = qs.order_by('channel__sort_order', 'sort_order')
     paginator = Paginator(qs, 12)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     channels = Channel.objects.filter(status='enabled').order_by('sort_order')
+    all_caps = Capability.objects.all()
     view_mode = request.GET.get('view', 'card')
+
+    def build_qs(exclude=None):
+        q = request.GET.copy()
+        if exclude:
+            q.pop(exclude, None)
+        q.pop('page', None)
+        return q.urlencode()
 
     return render(request, 'apimodels/list.html', {
         'api_models': page_obj, 'page_obj': page_obj,
         'channels': channels, 'view_mode': view_mode,
         'search': search, 'bill_type': bill_type, 'vendor': vendor,
+        'all_capabilities': all_caps, 'cap': cap,
+        'bill_qs': build_qs('bill'),
+        'vendor_qs': build_qs('vendor'),
+        'cap_qs': build_qs('cap'),
+        'view_qs': build_qs('view'),
     })
 
 
@@ -276,3 +330,32 @@ def serve_static(request, path):
     content_type, _ = mimetypes.guess_type(full)
     with open(full, 'rb') as f:
         return HttpResponse(f.read(), content_type=content_type or 'application/octet-stream')
+
+
+def homepage(request):
+    custom_url = SiteConfig.get('homepage_url', '')
+    if custom_url:
+        return redirect(custom_url)
+    api_models = ApiModel.objects.filter(status='enabled').select_related('channel').order_by('channel__sort_order', 'sort_order')[:12]
+    models_count = ApiModel.objects.filter(status='enabled').count()
+    site_name = SiteConfig.get('site_name', 'Seedance AI 平台')
+    return render(request, 'home.html', {'api_models': api_models, 'models_count': models_count, 'site_name': site_name})
+
+
+def platform_config(request):
+    if not request.user.is_authenticated or request.user.role != 'admin':
+        return redirect('user_login')
+
+    if request.method == 'POST':
+        for k in ['homepage_url', 'site_name', 'icp', 'footer_text']:
+            v = request.POST.get(k, '').strip()
+            SiteConfig.objects.update_or_create(key=k, defaults={'value': v})
+        return redirect('platform_config')
+
+    current = {
+        'homepage_url': SiteConfig.get('homepage_url', ''),
+        'site_name': SiteConfig.get('site_name', 'Seedance AI 平台'),
+        'icp': SiteConfig.get('icp', ''),
+        'footer_text': SiteConfig.get('footer_text', ''),
+    }
+    return render(request, 'admin_manage/platform_config.html', current)

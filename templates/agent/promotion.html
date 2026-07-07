@@ -68,6 +68,28 @@
         </div>
     </div>
 </div>
+
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-people"></i> 已邀请会员</span><form method="get" class="input-group input-group-sm" style="max-width:180px"><input name="q" class="form-control form-control-sm" placeholder="搜索用户名..." value="{{ search }}"><button class="btn btn-sm btn-primary"><i class="bi bi-search"></i></button></form></div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>用户名</th><th>注册时间</th><th>调用次数</th><th>消耗Token</th><th>总消费</th></tr></thead>
+            <tbody>
+            {% for m in invited_members %}
+            <tr>
+                <td>{{ m.username }}</td>
+                <td>{{ m.created_at|date:"m-d H:i" }}</td>
+                <td>{{ m.call_count }}</td>
+                <td>{{ m.total_tokens }}</td>
+                <td>¥{{ m.total_consume|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center py-4" style="color:var(--text-dim)">暂无邀请会员，快去分享推广链接吧！</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

@@ -28,6 +28,12 @@ def agent_dashboard(request):
         profile = get_object_or_404(AgentProfile, user=request.user)
         ctx['profile'] = profile
         ctx['sub_count'] = request.user.sub_members.count()
+        search = request.GET.get('q', '').strip()
+        sub_qs = request.user.sub_members.all()
+        if search:
+            sub_qs = sub_qs.filter(username__icontains=search)
+        ctx['sub_members'] = sub_qs.order_by('-created_at')[:10]
+        ctx['sub_search'] = search
         commissions = CommissionRecord.objects.filter(agent=profile)
         ctx['commissions'] = commissions.order_by('-created_at')[:20]
         ctx['total_commission'] = commissions.filter(status='settled').aggregate(total=Sum('commission_amount'))['total'] or 0
@@ -55,11 +61,26 @@ def member_list(request):
 
     search = request.GET.get('q', '').strip()
     if search:
-        qs = qs.filter(username__icontains=search) | qs.filter(email__icontains=search)
+        from django.db.models import Q
+        qs = qs.filter(Q(username__icontains=search) | Q(email__icontains=search))
 
     qs = qs.order_by('-created_at')
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
+
+    from apigateway.models import ApiRequestRecord
+    for m in page_obj:
+        m.call_count = ApiRequestRecord.objects.filter(user=m).count()
+        m.total_consume = ApiRequestRecord.objects.filter(user=m).aggregate(
+            total=Sum('cost')
+        )['total'] or 0
+        m.total_tokens = 0
+        try:
+            recs = ApiRequestRecord.objects.filter(user=m, prompt_tokens__gt=0).values_list('prompt_tokens', 'completion_tokens')
+            m.total_tokens = sum(r[0]+r[1] for r in recs if r[0] or r[1])
+        except Exception:
+            pass
+
     return render(request, 'agent/members.html', {
         'members': page_obj, 'page_obj': page_obj, 'search': search,
     })
@@ -85,6 +106,24 @@ def promotion(request):
     ref_count = request.user.sub_members.count()
     qr_url = f'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={ref_link}'
     invite_reward = SystemConfig.get('invite_reward', '0')
+    search = request.GET.get('q', '').strip()
+    invited_qs = request.user.sub_members.all()
+    if search:
+        invited_qs = invited_qs.filter(username__icontains=search)
+    invited_members = invited_qs.order_by('-created_at')[:20]
+
+    from apigateway.models import ApiRequestRecord
+    for m in invited_members:
+        m.call_count = ApiRequestRecord.objects.filter(user=m).count()
+        m.total_consume = ApiRequestRecord.objects.filter(user=m).aggregate(
+            total=Sum('cost')
+        )['total'] or 0
+        m.total_tokens = 0
+        try:
+            recs = ApiRequestRecord.objects.filter(user=m, prompt_tokens__gt=0).values_list('prompt_tokens', 'completion_tokens')
+            m.total_tokens = sum(r[0]+r[1] for r in recs if r[0] or r[1])
+        except Exception:
+            pass
 
     return render(request, 'agent/promotion.html', {
         'profile': profile,
@@ -93,6 +132,8 @@ def promotion(request):
         'ref_count': ref_count,
         'qr_url': qr_url,
         'invite_reward': invite_reward,
+        'invited_members': invited_members,
+        'search': search,
     })
 
 
@@ -231,3 +272,43 @@ def withdrawal_review(request):
         'page_obj': page_obj,
         'search': search,
     })
+
+
+@login_required
+def create_user(request):
+    import uuid as _uuid
+    if request.user.role != 'admin':
+        messages.error(request, '无权访问')
+        return redirect('dashboard')
+
+    role = request.GET.get('role', 'member')
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        role_ = request.POST.get('role', 'member')
+        parent_code = request.POST.get('parent_code', '').strip()
+
+        if not username or not password:
+            messages.error(request, '用户名和密码必填')
+            return redirect(f'{request.path}?role={role_}')
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f'用户名 {username} 已存在')
+            return redirect(f'{request.path}?role={role_}')
+
+        user = User.objects.create_user(username=username, password=password)
+        user.role = role_
+        user.api_key = 'AK' + _uuid.uuid4().hex[:30].upper()
+        if parent_code:
+            parent = User.objects.filter(referral_code=parent_code, is_active=True).first()
+            if parent:
+                user.parent_agent = parent
+
+        user.save()
+        if role_ == 'agent':
+            AgentProfile.objects.get_or_create(user=user, defaults={'level': 1, 'commission_rate': 10})
+
+        messages.success(request, f'用户 {username} 创建成功')
+        return redirect(f'{request.path}?role={role_}')
+
+    return render(request, 'agent/create_user.html', {'role': role})

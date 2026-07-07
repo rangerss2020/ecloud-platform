@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}平台设置{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-gear"></i> 平台设置</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3"><label class="form-label">平台名称</label><input name="site_name" class="form-control" value="{{ site_name }}" placeholder="Seedance AI 平台"></div>
+                    <div class="mb-3"><label class="form-label">自定义首页跳转URL</label><input type="url" name="homepage_url" class="form-control" value="{{ homepage_url }}" placeholder="留空为平台首页"></div>
+                    <div class="mb-3"><label class="form-label">ICP备案号</label><input name="icp" class="form-control" value="{{ icp }}" placeholder="例如: 京ICP备2025XXXXXX号"></div>
+                    <div class="mb-3"><label class="form-label">页脚信息</label><textarea name="footer_text" class="form-control" rows="2" placeholder="例如: 联系电话 / 地址">{{ footer_text }}</textarea></div>
+                    <button class="btn btn-primary">保存设置</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

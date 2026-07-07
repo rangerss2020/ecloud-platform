@@ -7,28 +7,39 @@
             <div class="card-header"><i class="bi bi-funnel"></i> 筛选</div>
             <div class="card-body">
                 <form method="get" id="filterForm">
+                    <input type="hidden" name="bill" value="{{ bill_type }}">
+                    <input type="hidden" name="vendor" value="{{ vendor }}">
+                    <input type="hidden" name="cap" value="{{ cap }}">
+                    <input type="hidden" name="view" value="{{ view_mode }}">
                     <div class="input-group input-group-sm mb-3">
                         <input type="text" name="q" class="form-control" placeholder="搜索模型名称..." value="{{ search }}">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
                     </div>
                     <label class="form-label small">计费方式</label>
                     <div class="d-flex gap-1 mb-3">
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if vendor %}vendor={{ vendor }}&{% endif %}bill=" class="btn btn-sm {% if not bill_type %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">全部</a>
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if vendor %}vendor={{ vendor }}&{% endif %}bill=per_call" class="btn btn-sm {% if bill_type == 'per_call' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">按次</a>
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if vendor %}vendor={{ vendor }}&{% endif %}bill=per_unit" class="btn btn-sm {% if bill_type == 'per_unit' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">按量</a>
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if vendor %}vendor={{ vendor }}&{% endif %}bill=free" class="btn btn-sm {% if bill_type == 'free' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">免费</a>
+                        <a href="?{{ bill_qs }}&bill=" class="btn btn-sm {% if not bill_type %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">全部</a>
+                        <a href="?{{ bill_qs }}&bill=per_call" class="btn btn-sm {% if bill_type == 'per_call' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">按次</a>
+                        <a href="?{{ bill_qs }}&bill=per_unit" class="btn btn-sm {% if bill_type == 'per_unit' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">按量</a>
+                        <a href="?{{ bill_qs }}&bill=free" class="btn btn-sm {% if bill_type == 'free' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.75rem">免费</a>
                     </div>
                     <label class="form-label small">厂商</label>
                     <div class="d-flex flex-wrap gap-1 mb-3">
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if bill_type %}bill={{ bill_type }}&{% endif %}vendor=" class="btn btn-sm {% if not vendor %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.7rem">全部</a>
+                        <a href="?{{ vendor_qs }}&vendor=" class="btn btn-sm {% if not vendor %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.7rem">全部</a>
                         {% for ch in channels %}
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if bill_type %}bill={{ bill_type }}&{% endif %}vendor={{ ch.code }}" class="btn btn-sm {% if vendor == ch.code %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.7rem">{{ ch.name }}</a>
+                        <a href="?{{ vendor_qs }}&vendor={{ ch.code }}" class="btn btn-sm {% if vendor == ch.code %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.7rem">{{ ch.name }}</a>
+                        {% endfor %}
+                    </div>
+                    <label class="form-label small">能力标签</label>
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        <a href="?{{ cap_qs }}&cap=" class="btn btn-sm {% if not cap %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.7rem">全部</a>
+                        {% for c in all_capabilities %}
+                        <a href="?{{ cap_qs }}&cap={{ c.code }}" class="btn btn-sm {% if cap == c.code %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:0.7rem">{{ c.name }}</a>
                         {% endfor %}
                     </div>
                     <label class="form-label small">显示</label>
                     <div class="d-flex gap-1">
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if bill_type %}bill={{ bill_type }}&{% endif %}{% if vendor %}vendor={{ vendor }}&{% endif %}view=card" class="btn btn-sm {% if view_mode == 'card' %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-grid-3x3-gap"></i></a>
-                        <a href="?{% if search %}q={{ search }}&{% endif %}{% if bill_type %}bill={{ bill_type }}&{% endif %}{% if vendor %}vendor={{ vendor }}&{% endif %}view=list" class="btn btn-sm {% if view_mode == 'list' %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-list-ul"></i></a>
+                        <a href="?{{ view_qs }}&view=card" class="btn btn-sm {% if view_mode == 'card' %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-grid-3x3-gap"></i></a>
+                        <a href="?{{ view_qs }}&view=list" class="btn btn-sm {% if view_mode == 'list' %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-list-ul"></i></a>
                     </div>
                 </form>
             </div>
@@ -73,6 +84,7 @@
                         <span class="badge bg-secondary">{{ m.http_method }}</span>
                         <span class="badge bg-info">{{ m.get_bill_type_display }}</span>
                         {% if m.bill_type != 'free' %}<span class="badge bg-success">¥{{ m.price }}</span>{% endif %}
+                        {% for c in m.capabilities.all|slice:":3" %}<span class="badge bg-secondary">{{ c.name }}</span>{% endfor %}
                     </div>
                     <a href="{% url 'api_model_detail' m.id %}" class="btn btn-outline-primary btn-sm">查看详情</a>
                     <a href="{% url 'api_test' m.id %}" class="btn btn-primary btn-sm">立即调用</a>

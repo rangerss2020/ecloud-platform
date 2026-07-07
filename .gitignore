@@ -34,3 +34,9 @@ credentials.json
 nul
 ecloud_platform.zip
 *.zip
+*.7z
+*.bak
+*.rar
+seedance_new*
+error.txt
+rebuild_chat.py

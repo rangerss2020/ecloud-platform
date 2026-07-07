@@ -26,6 +26,14 @@
             --text-secondary: #8892a4;
             --text-dim: #546078;
         }
+        [data-theme="light"] {
+            --bg-deep: #f0f2f5;
+            --bg-card: #ffffff;
+            --bg-card-hover: #e8ecf1;
+            --text-primary: #1a1a2e;
+            --text-secondary: #555;
+            --text-dim: #999;
+        }
 
         * { scrollbar-width: thin; scrollbar-color: #1a2235 #0a0e17; }
         ::-webkit-scrollbar { width: 6px; }
@@ -305,6 +313,11 @@
             color: #fff;
         }
         .form-control::placeholder { color: var(--text-dim); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1); cursor:pointer; }
+        input[type="date"]::-webkit-datetime-edit-text,
+        input[type="date"]::-webkit-datetime-edit-month-field,
+        input[type="date"]::-webkit-datetime-edit-day-field,
+        input[type="date"]::-webkit-datetime-edit-year-field { color:inherit; }
 
         .alert {
             background: linear-gradient(145deg, #111827, #0f172a);
@@ -450,6 +463,89 @@
         .modal { z-index: 1055 !important; }
         .modal-backdrop { z-index: 1050 !important; }
         .container-fluid { position: static; }
+
+        /* 浅色主题 - 全覆盖 */
+        [data-theme="light"] body::before {
+            background: none;
+        }
+        [data-theme="light"] body { background: #f0f2f5; }
+        [data-theme="light"] .navbar { background: #fff; border-bottom: 1px solid #e0e0e0; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        [data-theme="light"] .navbar .nav-link { color: #555 !important; }
+        [data-theme="light"] .navbar .nav-link:hover { color: #7c4dff !important; text-shadow: none; }
+        [data-theme="light"] .card { background: #fff; border: 1px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        [data-theme="light"] .card-header { background: #f8f9fc; border-bottom: 1px solid #e8e8e8; }
+        [data-theme="light"] .card-footer { background: #f8f9fc; border-top: 1px solid #e8e8e8; }
+        [data-theme="light"] .dropdown-menu { background: #fff; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        [data-theme="light"] .dropdown-item { color: #333 !important; }
+        [data-theme="light"] .dropdown-item:hover { background: #f0f2f5; color: #7c4dff !important; }
+        [data-theme="light"] .dropdown-item-text { color: #555 !important; }
+        [data-theme="light"] table { background: #fff !important; color: #333 !important; }
+        [data-theme="light"] table td, [data-theme="light"] table th { border-color: #e8e8e8 !important; color: #333 !important; }
+        [data-theme="light"] table td *, [data-theme="light"] table th * { color: #333 !important; }
+        [data-theme="light"] table td .text-muted, [data-theme="light"] table td [style*="color:var(--text-dim)"], [data-theme="light"] table th .text-muted { color: #888 !important; }
+        [data-theme="light"] table td strong.text-success { color: #00a854 !important; }
+        [data-theme="light"] table td strong.text-danger { color: #e53935 !important; }
+        [data-theme="light"] table thead { background: #f8f9fc !important; }
+        [data-theme="light"] table tbody tr:hover { background: #f0f4ff !important; }
+        [data-theme="light"] .stat-card { background: #fff !important; border: 1px solid #e8e8e8 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important; }
+        [data-theme="light"] .btn-outline-secondary { color: #555 !important; border-color: #ccc !important; }
+        [data-theme="light"] .btn-outline-secondary:hover { background: #e8ecf1 !important; color: #333 !important; }
+        [data-theme="light"] .btn-outline-light { color: #555 !important; border-color: #ccc !important; }
+        [data-theme="light"] .btn-outline-light:hover { color: #333 !important; }
+        [data-theme="light"] .form-control, [data-theme="light"] .form-select { background: #fff; color: #333; border-color: #d0d0d0; }
+        [data-theme="light"] .form-control::placeholder { color: #aaa; }
+        [data-theme="light"] footer { border-top-color: #e8e8e8 !important; color: #888 !important; }
+        [data-theme="light"] .model-tag { background: #f0f2f5; border-color: #e0e0e0; color: #555; }
+        [data-theme="light"] .model-tag:hover { background: #e8e0ff; color: #7c4dff; }
+        [data-theme="light"] .badge.bg-secondary { background: #e0e0e0 !important; color: #666 !important; }
+        [data-theme="light"] .badge.bg-info { background: #e0e0e0 !important; color: #555 !important; }
+        [data-theme="light"] code { color: #7c4dff; }
+        [data-theme="light"] hr { border-color: #e8e8e8; }
+        [data-theme="light"] .rank-row { background: #f8f9fc; }
+        [data-theme="light"] .hero { background: linear-gradient(135deg, #f0f2f5, #e8ecf1) !important; }
+        [data-theme="light"] .hero h1 { background: linear-gradient(135deg, #7c4dff 20%, #0099cc 50%, #00aa55 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        [data-theme="light"] .hero .subtitle { color: #555; }
+        [data-theme="light"] .cta-section { background: linear-gradient(135deg, rgba(124,77,255,0.06), rgba(0,150,200,0.04)); }
+        [data-theme="light"] .step { background: #f8f9fc; }
+        [data-theme="light"] .page-link { background: #fff; border-color: #e0e0e0; color: #7c4dff; }
+        [data-theme="light"] .page-link:hover { background: #f0f0ff; color: #7c4dff; }
+        [data-theme="light"] .page-item.active .page-link { background: #7c4dff; border-color: #7c4dff; color: #fff; }
+        [data-theme="light"] .page-item.disabled .page-link { background: #f5f5f5; border-color: #e0e0e0; color: #ccc; }
+        [data-theme="light"] .modal-content { background: #fff; border: 1px solid #e0e0e0; }
+        [data-theme="light"] .modal-header { border-bottom-color: #e0e0e0; }
+        [data-theme="light"] .modal-footer { border-top-color: #e0e0e0; }
+        [data-theme="light"] .btn-close-white { filter: none; opacity: 0.5; }
+        [data-theme="light"] .alert-info { background: #e3f2fd; border-color: #bbdefb; color: #1565c0; }
+        [data-theme="light"] .alert-success { background: #e8f5e9; border-color: #c8e6c9; color: #2e7d32; }
+        [data-theme="light"] .alert-warning { background: #fff8e1; border-color: #ffecb3; color: #ff8f00; }
+        [data-theme="light"] .alert-danger, [data-theme="light"] .alert-error { background: #ffebee; border-color: #ffcdd2; color: #c62828; }
+        [data-theme="light"] .alert { background: #f8f9fc; border-color: #d0d0d0; color: #333; }
+        [data-theme="light"] .d-inline-block[style*="rgba(124,77,255,0.08)"] pre,
+        [data-theme="light"] div[style*="background:rgba(124,77,255,0.08)"] pre,
+        [data-theme="light"] div[style*="background:rgba(0,229,255,0.08)"] pre { color: #333 !important; }
+        [data-theme="light"] .homepage .hero { background: linear-gradient(135deg, #f0f2f5, #e8ecf1) !important; }
+        [data-theme="light"] .homepage .hero h1 { background: linear-gradient(135deg, #7c4dff 20%, #0099cc 50%, #00aa55 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        [data-theme="light"] .homepage .hero-left p { color: #555 !important; }
+        [data-theme="light"] .homepage .stat-box { background: #fff !important; border-color: #e8e8e8 !important; }
+        [data-theme="light"] .homepage .carousel-card { background: #fff !important; border-color: #e0e0e0 !important; }
+        [data-theme="light"] .homepage .carousel-card .cc-label { color: #333 !important; }
+        [data-theme="light"] .homepage .carousel-card .cc-desc { color: #888 !important; }
+        [data-theme="light"] .homepage .model-tag { background: #f0f2f5 !important; border-color: #e0e0e0 !important; color: #555 !important; }
+        [data-theme="light"] .homepage .model-tag:hover { background: #e8e0ff !important; color: #7c4dff !important; }
+        [data-theme="light"] .homepage .section-title p { color: #888 !important; }
+        [data-theme="light"] .homepage .step { background: #f8f9fc !important; }
+        [data-theme="light"] .homepage .step p { color: #888 !important; }
+        [data-theme="light"] .homepage .spinner-border { border-color: #ccc; border-right-color: #7c4dff; }
+        [data-theme="light"] .homepage .cta-section { background: linear-gradient(135deg, rgba(124,77,255,0.06), rgba(0,150,200,0.04)) !important; }
+        [data-theme="light"] .homepage .active-tab { background: rgba(124,77,255,0.12) !important; color: #7c4dff !important; border-color: rgba(124,77,255,0.3) !important; }
+        [data-theme="light"] button[style*="background:#111827"] { background: #fff !important; border-color: #e0e0e0 !important; }
+        [data-theme="light"] button[style*="background:#111827"]:hover { background: #f0f0ff !important; border-color: #7c4dff !important; box-shadow: 0 0 8px rgba(124,77,255,0.1) !important; }
+        .quick-amount-btn { background: #111827; border: 1px solid rgba(0,229,255,0.15); border-radius: 8px; text-align: center; transition: all 0.2s; }
+        .quick-amount-btn:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,229,255,0.15); }
+        [data-theme="light"] .quick-amount-btn { background: #fff; border-color: #e0e0e0; }
+        [data-theme="light"] .quick-amount-btn:hover { background: #f0f0ff; border-color: #7c4dff; box-shadow: 0 0 8px rgba(124,77,255,0.12); }
+        .theme-toggle { cursor: pointer; font-size: 1.2rem; padding: 0.3rem 0.5rem; border: none; background: none; color: var(--text-secondary); transition: all 0.3s; }
+        .theme-toggle:hover { color: var(--accent); transform: rotate(20deg); }
     </style>
 </head>
 <body>
@@ -462,9 +558,9 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-cpu"></i> 控制台</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-cpu"></i> 控制台</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'api_model_list' %}"><i class="bi bi-boxes"></i> 模型</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'gateway_index' %}"><i class="bi bi-broadcast"></i> 网关</a></li>
+                    {% if user.role == 'admin' %}<li class="nav-item"><a class="nav-link" href="{% url 'gateway_index' %}"><i class="bi bi-broadcast"></i> 网关</a></li>{% endif %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'chat' %}"><i class="bi bi-chat-dots"></i> 对话</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'api_docs' %}"><i class="bi bi-book-open"></i> 文档</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'billing_index' %}"><i class="bi bi-wallet2"></i> 钱包</a></li>
@@ -481,16 +577,23 @@
                             <li><a class="dropdown-item" href="{% url 'manage_redeem_codes' %}"><i class="bi bi-ticket-perforated"></i> 兑换码</a></li>
                             <li><a class="dropdown-item" href="{% url 'manage_packages' %}"><i class="bi bi-box-seam"></i> 套餐管理</a></li>
                             <li><a class="dropdown-item" href="{% url 'admin_transactions' %}"><i class="bi bi-journal-text"></i> 交易日志</a></li>
+                            <li><a class="dropdown-item" href="{% url 'admin_api_records' %}"><i class="bi bi-bar-chart-line"></i> API调用记录</a></li>
                             <li><a class="dropdown-item" href="{% url 'withdrawal_review' %}"><i class="bi bi-cash-stack"></i> 提现审核</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'system_settings' %}"><i class="bi bi-gear"></i> 系统设置</a></li>
-                            <li><a class="dropdown-item" href="{% url 'payment_settings' %}"><i class="bi bi-sliders"></i> 支付设置</a></li>
+                            <li><a class="dropdown-item" href="{% url 'platform_config' %}"><i class="bi bi-sliders"></i> 首页与页脚</a></li>
+                            <li><a class="dropdown-item" href="{% url 'payment_settings' %}"><i class="bi bi-credit-card"></i> 支付设置</a></li>
                         </ul>
                     </li>
                     {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    <li class="nav-item d-flex align-items-center me-2">
+                        <button class="theme-toggle" id="themeToggle" title="切换主题">
+                            <i class="bi bi-sun-fill"></i>
+                        </button>
+                    </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
@@ -498,7 +601,7 @@
                             <span class="badge {% if user.role == 'admin' %}badge-admin{% elif user.role == 'agent' %}badge-agent{% else %}badge-member{% endif %}">{{ user.get_role_display }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text"><i class="bi bi-wallet2"></i> ¥{{ user.balance }}</span></li>
+                            <li><span class="dropdown-item-text"><i class="bi bi-wallet2"></i> ¥{{ user.balance|floatformat:4 }}</span></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'user_profile' %}"><i class="bi bi-person-gear"></i> 个人设置</a></li>
                             <li><a class="dropdown-item" href="{% url 'user_apikey' %}"><i class="bi bi-key-fill"></i> API Key</a></li>
@@ -532,8 +635,15 @@
         {% block content %}{% endblock %}
     </div>
 
-    <div class="footer">&#9670; {{ PLATFORM_NAME }} &#9670;</div>
+    <footer class="py-3 mt-5" style="border-top:1px solid rgba(124,77,255,0.1);text-align:center;font-size:0.8rem;color:var(--text-dim)">
+        <div class="mb-1">&copy; 2025-2026 {{ PLATFORM_NAME }} · All rights reserved · rangerss2020</div>
+        {% if FOOTER_TEXT %}<div class="mb-1">{{ FOOTER_TEXT|safe }}</div>{% endif %}
+        {% if ICP %}<div><a href="https://beian.miit.gov.cn" target="_blank" style="color:var(--text-dim);text-decoration:none">{{ ICP }}</a></div>{% endif %}
+    </footer>
     <script src="/static/vendor/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function(){var t=document.documentElement,btn=document.getElementById('themeToggle'),icon=btn?.querySelector('i'),s=localStorage.getItem('theme')||'dark';t.setAttribute('data-theme',s);if(icon)icon.className='bi '+(s==='light'?'bi-moon-fill':'bi-sun-fill');btn.onclick=function(){var n=t.getAttribute('data-theme')==='dark'?'light':'dark';t.setAttribute('data-theme',n);localStorage.setItem('theme',n);icon.className='bi '+(n==='light'?'bi-moon-fill':'bi-sun-fill');};})();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

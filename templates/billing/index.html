@@ -5,7 +5,7 @@
     <div class="col-md-4">
         <div class="stat-card" style="--accent:#00e676">
             <div class="label">当前余额</div>
-            <div class="value">¥{{ user.balance }}</div>
+            <div class="value">¥{{ user.balance|floatformat:4 }}</div>
         </div>
     </div>
     <div class="col-md-8 d-flex align-items-center flex-wrap gap-2">
@@ -84,8 +84,8 @@
                             {% else %}<span class="badge bg-secondary">{{ t.get_type_display }}</span>
                             {% endif %}
                         </td>
-                        <td><strong class="{% if t.amount > 0 %}text-success{% else %}text-danger{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount }}</strong></td>
-                        <td>¥{{ t.balance_after }}</td>
+                        <td><strong class="{% if t.amount > 0 %}text-success{% else %}text-danger{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount|floatformat:4 }}</strong></td>
+                        <td>¥{{ t.balance_after|floatformat:4 }}</td>
                         <td>{{ t.description }}</td>
                         <td>{{ t.created_at|date:"m-d H:i" }}</td>
                     </tr>

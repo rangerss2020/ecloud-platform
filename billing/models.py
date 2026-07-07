@@ -65,8 +65,8 @@ class Transaction(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='用户')
     type = models.CharField(max_length=10, choices=TYPE_CHOICES, verbose_name='交易类型')
-    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='金额(元)')
-    balance_after = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='交易后余额')
+    amount = models.DecimalField(max_digits=12, decimal_places=4, verbose_name='金额(元)')
+    balance_after = models.DecimalField(max_digits=12, decimal_places=4, verbose_name='交易后余额')
     description = models.CharField(max_length=255, verbose_name='交易描述')
     related_order = models.CharField(max_length=32, blank=True, verbose_name='关联订单号')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='交易时间')

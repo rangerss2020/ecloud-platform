@@ -198,18 +198,37 @@
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header"><i class="bi bi-activity"></i> 最近调用记录</div>
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <span><i class="bi bi-activity"></i> 最近调用记录</span>
+                <form method="get" class="d-flex gap-1 align-items-center flex-wrap" style="font-size:0.8rem">
+                    <input type="date" name="from" value="{{ date_from }}" class="form-control form-control-sm" style="width:130px">
+                    <span style="color:var(--text-dim)">~</span>
+                    <input type="date" name="to" value="{{ date_to }}" class="form-control form-control-sm" style="width:130px">
+                    <select name="fm" class="form-select form-select-sm" style="width:auto;max-width:160px">
+                        <option value="">全部模型</option>
+                        {% for m in all_models_list %}
+                        <option value="{{ m.code }}" {% if filter_model == m.code %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary">查询</button>
+                    {% if filter_model or date_from or date_to %}<a href="?" class="btn btn-sm btn-outline-secondary">清除</a>{% endif %}
+                </form>
+            </div>
             <div class="card-body p-0">
                 <table class="table table-hover mb-0">
-                    <thead><tr><th>API</th><th>状态</th><th>费用</th><th>耗时</th><th>IP</th><th>时间</th></tr></thead>
+                    <thead><tr><th>API</th><th>Token</th><th>状态</th><th>费用</th><th>耗时</th><th>时间</th></tr></thead>
                     <tbody>
                     {% for r in recent_records %}
                     <tr>
                         <td>{{ r.api_model.name|default:'-' }}</td>
+                        <td>
+                            <span style="font-size:0.78rem;color:var(--text-dim)">
+                            {% if r.token_count %}{{ r.token_count }}{% else %}-{% endif %}
+                            </span>
+                        </td>
                         <td><span class="badge {% if r.response_state == 'OK' %}bg-success{% else %}bg-danger{% endif %}">{{ r.response_state }}</span></td>
                         <td>¥{{ r.cost }}</td>
                         <td>{{ r.duration_ms }}ms</td>
-                        <td><small>{{ r.ip_address }}</small></td>
                         <td>{{ r.created_at|date:"m-d H:i:s" }}</td>
                     </tr>
                     {% empty %}
@@ -238,16 +257,12 @@ new Chart(document.getElementById('callsChart'), {
     data: {
         labels: {{ chart_days|safe }},
         datasets: [{
-            label: 'API调用次数',
+            label: '调用次数',
             data: {{ chart_calls }},
             borderColor: '#00e5ff',
-            backgroundColor: 'rgba(0,229,255,0.08)',
+            backgroundColor: 'rgba(0,229,255,0.1)',
             borderWidth: 2,
             pointBackgroundColor: '#00e5ff',
-            pointBorderColor: '#0a0e17',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
             tension: 0.4,
             fill: true
         }]
@@ -255,22 +270,10 @@ new Chart(document.getElementById('callsChart'), {
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: {
-            padding: { top: 10, right: 15, bottom: 5, left: 15 }
-        },
-        plugins: { legend: { labels: { color: '#8892a4', padding: 12 } } },
+        plugins: { legend: { labels: { color: '#8892a4' } } },
         scales: {
-            x: { 
-                grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, 
-                ticks: { color: '#546078', padding: 8 },
-                border: { display: false }
-            },
-            y: { 
-                grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, 
-                ticks: { color: '#546078', padding: 8 },
-                border: { display: false },
-                beginAtZero: true
-            }
+            x: { ticks: { color: '#546078' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: { beginAtZero: true, ticks: { color: '#546078' }, grid: { color: 'rgba(255,255,255,0.04)' } }
         }
     }
 });

@@ -1,36 +1,46 @@
 @echo off
-chcp 65001 >nul
-echo ========================================
-echo   ECloud API Platform - Production Start
-echo ========================================
+title Seedance Platform 2026-06-30
 
-cd /d "%~dp0"
+echo ===========================================
+echo   Seedance AI Platform - Auto Start
+echo   Build: 2026-06-30
+echo ===========================================
+echo.
 
-echo [1/4] Checking migrations...
-python manage.py migrate --noinput
+where python >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Migration failed!
+    echo [ERROR] Python not found. Install Python 3.8+ first.
     pause
     exit /b 1
 )
+echo [OK] Python ready
 
-echo [2/4] Checking init data...
-python manage.py shell -c "from users.models import User; exit(0 if User.objects.filter(username='admin').exists() else 1)"
+echo.
+echo [1/3] Installing dependencies...
+pip install -r requirements.txt --quiet
 if %errorlevel% neq 0 (
-    echo Initializing seed data...
-    python manage.py initdata
+    echo [WARN] pip install failed, retrying...
+    pip install -r requirements.txt
 )
+echo [OK] Done
 
-echo [3/4] Collecting static files...
-python manage.py collectstatic --noinput
+echo.
+echo [2/3] Database migration...
+python manage.py migrate --noinput
+echo [OK] Done
 
-echo [4/4] Starting server...
 echo.
-echo   HTTP:  http://0.0.0.0:8000
-echo   Admin: http://0.0.0.0:8000/admin/
-echo   API:   http://0.0.0.0:8000/v1
+echo [3/3] Collecting static files...
+python manage.py collectstatic --noinput -v 0
+echo [OK] Done
+
 echo.
+echo ===========================================
+echo   Server starting at http://127.0.0.1:8000
+echo   Default login: admin / admin123
 echo   Press Ctrl+C to stop
-echo ========================================
+echo ===========================================
+echo.
 
-waitress-serve --port=8000 --threads=16 ecloud_platform.wsgi:application
+python -m waitress --host=0.0.0.0 --port=8000 ecloud_platform.wsgi:application
+pause

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from users.models import User
-from apimodels.models import Channel, ApiModel, ApiParameter
+from apimodels.models import Channel, ApiModel, ApiParameter, Capability
 from agent.models import AgentProfile
 from billing.models import PricingRule
 
@@ -53,6 +53,35 @@ class Command(BaseCommand):
         )
         self.stdout.write(f'Channel: {ch.name} [{ch.get_auth_type_display()}]')
 
+        sh, _ = Channel.objects.get_or_create(
+            code='seedance',
+            defaults={
+                'name': 'Seedance视频',
+                'description': '豆包 Seedance 2.0 视频生成服务',
+                'base_url': 'https://zhenze-huhehaote.cmecloud.cn/api/v3',
+                'auth_type': 'bearer',
+                'api_key': 'YOUR_SEEDANCE_API_KEY',
+                'status': 'enabled',
+                'sort_order': 2,
+            }
+        )
+        self.stdout.write(f'Channel: {sh.name} [{sh.get_auth_type_display()}]')
+
+        capabilities = [
+            ('image_input', '图片输入', ''),
+            ('video_input', '视频输入', ''),
+            ('audio_input', '音频输入', ''),
+            ('image_output', '图片输出', ''),
+            ('video_output', '视频输出', ''),
+            ('audio_output', '音频输出', ''),
+            ('reasoning', '深度思考', ''),
+        ]
+        cap_objs = {}
+        for code, name, icon in capabilities:
+            obj, _ = Capability.objects.get_or_create(code=code, defaults={'name': name, 'icon': icon, 'sort_order': len(cap_objs)})
+            cap_objs[code] = obj
+            self.stdout.write(f'  Cap: {name}')
+
         models_data = [
             {'code':'deepseek-v4-pro','name':'DeepSeek-V4-Pro','bill_type':'per_unit','unit_type':'per_1m','price':0.02,'servlet_path':'/v1/chat/completions','params':[{'n':'model','t':'string','r':True,'d':'deepseek-v4-pro'}]},
             {'code':'deepseek-v4-flash','name':'DeepSeek-V4-Flash','bill_type':'per_unit','unit_type':'per_1m','price':0.01,'servlet_path':'/v1/chat/completions','params':[{'n':'model','t':'string','r':True,'d':'deepseek-v4-flash'}]},
@@ -75,18 +104,28 @@ class Command(BaseCommand):
             {'code':'hunyuan','name':'混元(腾讯)','bill_type':'per_unit','unit_type':'per_1m','price':0.005,'servlet_path':'/v1/chat/completions','params':[{'n':'model','t':'string','r':True,'d':'hunyuan'}]},
             {'code':'wxyy','name':'文心一言(百度)','bill_type':'per_unit','unit_type':'per_1m','price':0.005,'servlet_path':'/v1/chat/completions','params':[{'n':'model','t':'string','r':True,'d':'wxyy'}]},
             {'code':'embedding','name':'Embedding向量','bill_type':'per_unit','unit_type':'per_1k','price':0.001,'servlet_path':'/v1/embeddings','params':[{'n':'model','t':'string','r':True,'d':'embedding'},{'n':'input','t':'string','r':True,'d':''}]},
+            {'code':'doubao-seedance-2.0','name':'Seedance 2.0 视频生成','bill_type':'per_call','unit_type':'','price':5.00,'servlet_path':'/contents/generations/tasks','task_type':'video','channel':'seedance','caps':['image_input','video_input','audio_input','video_output','audio_output'],'resolutions':[{'ratio':'16:9','label':'横屏 16:9','multiplier':1.0},{'ratio':'9:16','label':'竖屏 9:16','multiplier':1.2},{'ratio':'1:1','label':'方形 1:1','multiplier':1.0}],'durations':[{'seconds':5,'label':'5秒','multiplier':0.5},{'seconds':8,'label':'8秒','multiplier':0.8},{'seconds':11,'label':'11秒','multiplier':1.0}],'params':[{'n':'model','t':'string','r':True,'d':'doubao-seedance-2.0'}]},
         ]
 
         for data in models_data:
             params = data.pop('params', [])
+            task_type = data.pop('task_type', 'chat')
+            caps_codes = data.pop('caps', [])
+            resolutions = data.pop('resolutions', [])
+            durations = data.pop('durations', [])
+            model_ch = data.pop('channel', 'maas')
+            model_channel = ch if model_ch == 'maas' else sh
             code = data.pop('code')
             defaults = {
                 'name': data['name'], 'description': data['name'],
                 'servlet_path': data['servlet_path'], 'http_method': 'POST',
                 'bill_type': data['bill_type'], 'unit_type': data.get('unit_type', ''),
                 'price': data['price'], 'status': 'enabled',
+                'task_type': task_type,
+                'resolution_options': resolutions,
+                'duration_options': durations,
             }
-            model, created = ApiModel.objects.get_or_create(channel=ch, code=code, defaults=defaults)
+            model, created = ApiModel.objects.get_or_create(channel=model_channel, code=code, defaults=defaults)
             if created:
                 for i, p in enumerate(params):
                     ApiParameter.objects.create(
@@ -94,6 +133,10 @@ class Command(BaseCommand):
                         required=p['r'], default_value=p.get('d',''),
                         description=p['n'], sort_order=i,
                     )
+                for cap_code in caps_codes:
+                    c = cap_objs.get(cap_code)
+                    if c:
+                        model.capabilities.add(c)
                 if model.bill_type != 'free' and model.price > 0:
                     PricingRule.objects.get_or_create(
                         api_model=model, bill_type=model.bill_type,

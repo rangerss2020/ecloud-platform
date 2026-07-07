@@ -17,11 +17,8 @@
                     <div class="row g-2 mb-3">
                         {% for q in quick_amounts %}
                         <div class="col">
-                            <button type="button" class="btn w-100 py-2 position-relative"
-                                onclick="document.querySelector('[name=amount]').value='{{ q.amount }}'"
-                                style="background:#111827;border:1px solid rgba(0,229,255,0.15);border-radius:8px;text-align:center;transition:all 0.2s"
-                                onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 12px rgba(0,229,255,0.15)'"
-                                onmouseout="this.style.borderColor='rgba(0,229,255,0.15)';this.style.boxShadow='none'">
+                            <button type="button" class="btn quick-amount-btn w-100 py-2 position-relative"
+                                onclick="document.querySelector('[name=amount]').value='{{ q.amount }}'">
                                 <div style="font-size:1.1rem;font-weight:700;color:var(--accent)">¥{{ q.amount }}</div>
                                 {% if q.bonus != '0' and q.bonus != '' %}
                                 <small style="color:#ffab00"><i class="bi bi-gift"></i> 送{{ q.bonus }}</small>

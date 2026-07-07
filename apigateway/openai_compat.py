@@ -12,7 +12,7 @@ from .filter import filter_instance
 
 @csrf_exempt
 def openai_models(request):
-    models = ApiModel.objects.filter(status='enabled').order_by('sort_order')
+    models = ApiModel.objects.filter(status='enabled', task_type='chat').order_by('sort_order')
     data = [{'id': m.code, 'object': 'model', 'created': int(m.created_at.timestamp()), 'owned_by': m.channel.name} for m in models]
     return JsonResponse({'object': 'list', 'data': data})
 
@@ -40,7 +40,7 @@ def openai_chat(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': {'message': 'Invalid JSON', 'type': 'invalid_request_error'}}, status=400)
 
-    api_model = ApiModel.objects.filter(code=model_code, status='enabled').select_related('channel').first()
+    api_model = ApiModel.objects.filter(code=model_code, status='enabled', task_type='chat').select_related('channel').first()
     if not api_model:
         return JsonResponse({'error': {'message': f'Model {model_code} not found', 'type': 'model_not_found'}}, status=404)
 
@@ -55,9 +55,15 @@ def openai_chat(request):
             if blocked:
                 return JsonResponse({'error': {'message': 'Content blocked by policy', 'type': 'content_filter'}}, status=403)
 
-    cost = api_model.price if api_model.bill_type != 'free' else 0
-    if cost > 0 and user.balance < cost:
-        return JsonResponse({'error': {'message': 'Insufficient balance', 'type': 'insufficient_quota'}}, status=402)
+    is_per_call = api_model.bill_type == 'per_call'
+    is_per_unit = api_model.bill_type == 'per_unit'
+
+    if is_per_call:
+        cost = float(api_model.price)
+        if user.balance < cost:
+            return JsonResponse({'error': {'message': 'Insufficient balance', 'type': 'insufficient_quota'}}, status=402)
+    else:
+        cost = 0
 
     url = f'{channel.base_url}{api_model.servlet_path}'
 
@@ -83,15 +89,46 @@ def openai_chat(request):
 
     if is_stream:
         def generate():
+            prompt_tokens = 0
+            completion_tokens = 0
             try:
                 for chunk in upstream_resp.iter_content(chunk_size=None):
                     yield chunk
+                    line = chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk
+                    for part in line.split('\n'):
+                        if not part.startswith('data: '):
+                            continue
+                        raw = part.replace('data: ', '', 1)
+                        if raw.strip() == '[DONE]':
+                            continue
+                        try:
+                            data = json.loads(raw)
+                            u = data.get('usage')
+                            if u:
+                                prompt_tokens = u.get('prompt_tokens', 0)
+                                completion_tokens = u.get('completion_tokens', 0)
+                        except (json.JSONDecodeError, KeyError):
+                            continue
             except Exception:
                 pass
 
-            if cost > 0:
+            if is_per_call and cost > 0:
                 ok, ba = deduct_balance(user, cost, f'API: {api_model.name}')
                 balance_after = ba if ok else balance_before
+            elif is_per_unit:
+                total = prompt_tokens + completion_tokens
+                if api_model.unit_type == 'per_1m':
+                    actual_cost = round(total / 1000000.0 * float(api_model.price), 6)
+                elif api_model.unit_type == 'per_1k':
+                    actual_cost = round(total / 1000.0 * float(api_model.price), 6)
+                else:
+                    actual_cost = float(api_model.price)
+                if actual_cost > 0:
+                    ok, ba = deduct_balance(user, actual_cost, f'API: {api_model.name} ({total} tokens)')
+                    balance_after = ba if ok else balance_before
+                    cost = actual_cost
+                else:
+                    balance_after = balance_before
             else:
                 balance_after = balance_before
 
@@ -101,6 +138,7 @@ def openai_chat(request):
                 response_state='OK', cost=cost,
                 balance_before=balance_before, balance_after=balance_after,
                 status='success', duration_ms=duration_ms,
+                prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
                 ip_address=request.META.get('REMOTE_ADDR', ''),
             )
 
@@ -113,10 +151,25 @@ def openai_chat(request):
 
     result_data = upstream_resp.json()
 
-    if cost > 0:
+    usage = result_data.get('usage', {})
+    prompt_tokens = usage.get('prompt_tokens', 0)
+    completion_tokens = usage.get('completion_tokens', 0)
+
+    if is_per_call and cost > 0:
         ok, ba = deduct_balance(user, cost, f'API: {api_model.name}')
-        if ok:
-            balance_after = ba
+        balance_after = ba if ok else balance_before
+    elif is_per_unit:
+        total = prompt_tokens + completion_tokens
+        if api_model.unit_type == 'per_1m':
+            actual_cost = round(total / 1000000.0 * float(api_model.price), 6)
+        elif api_model.unit_type == 'per_1k':
+            actual_cost = round(total / 1000.0 * float(api_model.price), 6)
+        else:
+            actual_cost = float(api_model.price)
+        if actual_cost > 0:
+            ok, ba = deduct_balance(user, actual_cost, f'API: {api_model.name} ({total} tokens)')
+            balance_after = ba if ok else balance_before
+            cost = actual_cost
         else:
             balance_after = balance_before
     else:
@@ -128,6 +181,7 @@ def openai_chat(request):
         response_state='OK', cost=cost,
         balance_before=balance_before, balance_after=balance_after,
         status='success', duration_ms=duration_ms,
+        prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
         ip_address=request.META.get('REMOTE_ADDR', ''),
     )
 

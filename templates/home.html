@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% block title %}{{ site_name }} - 一站式大模型服务平台{% endblock %}
+{% block content %}
+<div class="homepage">
+<style>
+.homepage .hero { background:linear-gradient(135deg, #0a0a1a 0%, #1a1040 40%, #0d1b3e 100%); position:relative; overflow:hidden; margin:-1.5rem -1.5rem 0; padding:3rem 2rem; min-height:550px; }
+.homepage .hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 30% 50%, rgba(124,77,255,0.15) 0%, transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(0,229,255,0.1) 0%, transparent 60%); }
+.homepage .hero::after { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(124,77,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(124,77,255,0.03) 1px, transparent 1px); background-size:60px 60px; opacity:0.5; }
+.homepage .hero-particles { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+.homepage .hero-particles span { position:absolute; width:4px; height:4px; background:radial-gradient(circle, rgba(124,77,255,0.8), transparent); border-radius:50%; animation:particleFloat 8s infinite ease-in-out; }
+@keyframes particleFloat { 0%,100% { transform:translateY(0) translateX(0); opacity:0.3; } 50% { transform:translateY(-30px) translateX(10px); opacity:0.8; } }
+.homepage .hero-inner { position:relative; z-index:1; display:flex; gap:0; align-items:flex-start; }
+.homepage .hero-left { flex:0 0 480px; position:relative; z-index:2; padding-top:7rem; transform: translateX(200px); }
+.homepage .hero-left h1 { font-size:3.2rem; font-weight:800; background:linear-gradient(135deg, #7c4dff 20%, #00e5ff 50%, #00e676 80%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:0 0 30px rgba(124,77,255,0.3), 0 0 60px rgba(0,229,255,0.2); }
+.homepage .hero-left .subtitle { font-size:1.1rem; color:var(--text-secondary); line-height:1.7; }
+.homepage .hero-right { flex:1; position:relative; z-index:1; min-width:500px; margin-left:-60px; padding-top:40px; }
+.homepage .stat-row { display:flex; gap:0.8rem; position:relative; z-index:1; }
+.homepage .stat-box { flex:1; text-align:center; padding:1.8rem 0.8rem; background:rgba(12,12,30,0.6); backdrop-filter:blur(12px); border:1px solid rgba(124,77,255,0.15); border-radius:16px; transition:all 0.3s; position:relative; overflow:hidden; }
+.homepage .stat-box::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:conic-gradient(from 0deg, transparent, rgba(124,77,255,0.1), transparent, rgba(0,229,255,0.1), transparent); animation:statGlow 8s linear infinite; }
+@keyframes statGlow { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+.homepage .stat-box:hover { border-color:rgba(124,77,255,0.4); box-shadow:0 0 30px rgba(124,77,255,0.15); transform:translateY(-2px); }
+.homepage .stat-box .num { font-size:2.2rem; font-weight:800; color:#7c4dff; text-shadow:0 0 20px rgba(124,77,255,0.4); position:relative; z-index:1; }
+.homepage .section-title { text-align:center; margin-bottom:3rem; position:relative; }
+.homepage .section-title h2 { font-size:2rem; font-weight:800; background:linear-gradient(135deg, #7c4dff, #00e5ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:0 0 20px rgba(124,77,255,0.3); position:relative; }
+.homepage .section-title h2::after { content:''; position:absolute; bottom:-8px; left:50%; transform:translateX(-50%); width:60px; height:3px; background:linear-gradient(90deg, #7c4dff, #00e5ff); border-radius:2px; box-shadow:0 0 10px rgba(124,77,255,0.5); }
+.homepage .section-title p { color:var(--text-dim); margin-top:1rem; }
+.homepage .step { display:flex; gap:1.5rem; align-items:flex-start; padding:2rem; background:rgba(12,12,30,0.4); backdrop-filter:blur(8px); border-radius:16px; border:1px solid rgba(124,77,255,0.1); margin-bottom:1rem; transition:all 0.3s; position:relative; overflow:hidden; }
+.homepage .step::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg, transparent, rgba(124,77,255,0.1), transparent); transition:left 0.6s; }
+.homepage .step:hover::before { left:100%; }
+.homepage .step:hover { border-color:rgba(124,77,255,0.3); box-shadow:0 0 20px rgba(124,77,255,0.1); transform:translateX(5px); }
+.homepage .step .icon { width:64px; height:64px; border-radius:12px; background:linear-gradient(135deg, #7c4dff, #00e5ff); display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:#fff; flex-shrink:0; box-shadow:0 0 20px rgba(124,77,255,0.3); transition:transform 0.3s; }
+.homepage .step:hover .icon { transform:scale(1.1); }
+.homepage .step h6 { font-weight:700; margin-bottom:0.3rem; }
+.homepage .step p { color:var(--text-dim); font-size:0.875rem; margin:0; }
+.homepage .model-tag { display:inline-block; padding:0.5rem 1rem; background:rgba(124,77,255,0.08); border:1px solid rgba(124,77,255,0.15); border-radius:999px; font-size:0.85rem; color:var(--text-secondary); margin:0.25rem; transition:all 0.2s; text-decoration:none; }
+.homepage .model-tag:hover { background:rgba(124,77,255,0.15); color:var(--accent); }
+.homepage .cta-section { background:linear-gradient(135deg, rgba(124,77,255,0.12), rgba(0,229,255,0.08)); border-radius:24px; padding:3rem; text-align:center; position:relative; overflow:hidden; border:1px solid rgba(124,77,255,0.15); }
+.homepage .cta-section::before { content:''; position:absolute; inset:-50%; background:conic-gradient(from 0deg, transparent 0deg, rgba(124,77,255,0.05) 60deg, transparent 120deg); animation:ctaRotate 20s linear infinite; }
+@keyframes ctaRotate { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+.homepage .cta-btn-wrap { position:relative; z-index:1; display:inline-flex; gap:1rem; }
+.homepage .cta-btn { position:relative; overflow:hidden; }
+.homepage .cta-btn::before { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transform:translateX(-100%); transition:transform 0.6s; }
+.homepage .cta-btn:hover::before { transform:translateX(100%); }
+.homepage .cta-btn-pulse { position:relative; }
+.homepage .cta-btn-pulse::after { content:''; position:absolute; inset:-4px; background:linear-gradient(135deg, #7c4dff, #00e5ff); border-radius:inherit; z-index:-1; opacity:0; animation:ctaPulse 2s infinite; }
+@keyframes ctaPulse { 0%,100% { opacity:0; transform:scale(1); } 50% { opacity:0.5; transform:scale(1.05); } }
+.homepage .carousel-scene { perspective:1800px; width:100%; height:380px; position:relative; overflow:visible; }
+.homepage .carousel-ring { position:absolute; left:50%; top:60%; width:0; height:0; transform-style:preserve-3d; transition:transform 0.6s cubic-bezier(0.4,0,0.2,1); }
+.homepage .carousel-card { position:absolute; width:420px; margin-left:-210px; margin-top:-200px; border-radius:14px; overflow:hidden; background:#0d0d1a; border:2px solid rgba(124,77,255,0.1); box-shadow:0 10px 40px rgba(0,0,0,0.5); transition:all 0.5s; cursor:pointer; }
+.homepage .carousel-card.active { border-color:rgba(124,77,255,0.4); box-shadow:0 20px 60px rgba(124,77,255,0.15); }
+.homepage .carousel-card img { width:100%; height:230px; object-fit:contain; display:block; background:#0a0a13; }
+.homepage .carousel-card .cc-label { padding:0.8rem 1rem 0.2rem; font-weight:700; font-size:0.95rem; color:var(--text-primary); }
+.homepage .carousel-card .cc-desc { padding:0 1rem 1rem; font-size:0.8rem; color:var(--text-dim); }
+.homepage .active-tab { background:rgba(124,77,255,0.15) !important; color:var(--accent) !important; border:1px solid rgba(124,77,255,0.3) !important; }
+.homepage .chart-box { position:relative; height:240px; }
+.homepage .chart-box canvas { width:100%; height:100%; }
+.homepage .rank-row { display:flex; align-items:center; gap:1rem; padding:0.7rem 1rem; margin:0.3rem 0; background:rgba(124,77,255,0.04); border-radius:8px; transition:all 0.3s; }
+.homepage .rank-row .rank-num { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; background:rgba(124,77,255,0.15); color:var(--text-primary); }
+.homepage .rank-row .rank-num.gold { background:linear-gradient(135deg,#ffd700,#ffaa00); color:#000; }
+.homepage .rank-row .rank-num.silver { background:linear-gradient(135deg,#c0c0c0,#999); color:#000; }
+.homepage .rank-row .rank-num.bronze { background:linear-gradient(135deg,#cd7f32,#a0522d); color:#fff; }
+.homepage .rank-row .model-name { font-weight:600; min-width:160px; }
+.homepage .rank-row .bar-wrap { flex:1; height:8px; background:rgba(124,77,255,0.1); border-radius:4px; overflow:hidden; }
+.homepage .rank-row .bar-fill { height:100%; background:linear-gradient(90deg, #7c4dff, #00e5ff); border-radius:4px; transition:width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.homepage .rank-row .bar-val { min-width:50px; text-align:right; font-size:0.85rem; color:var(--text-dim); }
+.homepage .token-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:0.75rem; }
+@media (max-width: 768px) {
+    .homepage .hero { padding:2rem 1rem; }
+    .homepage .hero-inner { flex-direction:column; }
+    .homepage .hero-left { flex:auto; padding-top:0; }
+    .homepage .hero-left h1 { font-size:2rem; }
+    .homepage .hero-right { min-width:auto; margin-left:0; padding-top:1rem; }
+    .homepage .carousel-scene { height:320px; }
+    .homepage .carousel-card { width:280px; margin-left:-140px; margin-top:-140px; }
+    .homepage .carousel-card img { height:160px; }
+    .homepage .stat-row { flex-wrap:wrap; }
+    .homepage .stat-box { flex:0 0 calc(50% - 0.4rem); }
+    .homepage .token-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 480px) {
+    .homepage .carousel-scene { height:260px; }
+    .homepage .carousel-card { width:220px; margin-left:-110px; margin-top:-120px; }
+    .homepage .carousel-card img { height:120px; }
+    .homepage .carousel-card .cc-label { font-size:0.8rem; }
+    .homepage .carousel-card .cc-desc { font-size:0.7rem; display:none; }
+}
+</style>
+
+<div class="hero">
+    <div class="hero-particles" id="particles"></div>
+    <div class="hero-inner">
+        <div class="hero-left">
+            <h1 class="mb-2">{{ site_name }}</h1>
+            <p class="subtitle mb-3">一站式接入多厂商大模型 · 统一 API · 统一鉴权 · 统一计费<br>支持对话、视频生成、向量嵌入等全场景 AI 能力</p>
+            <div class="d-flex gap-2">
+                <a href="{% url 'chat' %}" class="btn btn-primary px-4" style="background:linear-gradient(135deg, #7c4dff, #00e5ff);border:none;box-shadow:0 0 20px rgba(124,77,255,0.3)">开始对话</a>
+                <a href="{% url 'api_model_list' %}" class="btn btn-outline-light px-4">浏览模型</a>
+            </div>
+        </div>
+        <div class="hero-right">
+            <div class="carousel-scene" id="scene">
+                <div class="carousel-ring" id="ring"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="stat-row mt-4">
+    <div class="stat-box"><div style="position:relative;z-index:1"><div class="num" id="statModels">0</div><div class="text-muted small mt-1">接入模型</div></div></div>
+    <div class="stat-box"><div style="position:relative;z-index:1"><div class="num" id="statCalls">0</div><div class="text-muted small mt-1">日均调用</div></div></div>
+    <div class="stat-box"><div style="position:relative;z-index:1"><div class="num" id="statTokens">0</div><div class="text-muted small mt-1">日均 Token</div></div></div>
+    <div class="stat-box"><div style="position:relative;z-index:1"><div class="num" id="statUptime">0</div><div class="text-muted small mt-1">在线率</div></div></div>
+</div>
+
+<div class="card mt-4 mb-5" style="background:linear-gradient(145deg, rgba(124,77,255,0.04), rgba(0,229,255,0.02));border:1px solid rgba(124,77,255,0.08)">
+    <div class="card-body">
+        <div class="d-flex gap-1 mb-3">
+            <button class="btn btn-sm active-tab" onclick="switchTab(0,this)">调用趋势</button>
+            <button class="btn btn-sm" onclick="switchTab(1,this)">模型排行榜</button>
+            <button class="btn btn-sm" onclick="switchTab(2,this)">Token 消耗</button>
+        </div>
+        <div id="tabContent"></div>
+    </div>
+</div>
+
+<div class="section-title"><h2>三步开始</h2><p>从注册到调用，从未如此简单</p></div>
+<div class="row g-4 mb-5">
+    <div class="col-md-4"><div class="step"><div class="icon"><i class="bi bi-person-plus"></i></div><div><h6>1. 注册账号</h6><p>自主开通账号，自动获取专属 API Key，无需多方申请</p></div></div></div>
+    <div class="col-md-4"><div class="step"><div class="icon"><i class="bi bi-search"></i></div><div><h6>2. 选择模型</h6><p>在模型广场按需筛选，查看详情和计费，选择最适合您业务的模型</p></div></div></div>
+    <div class="col-md-4"><div class="step"><div class="icon"><i class="bi bi-send"></i></div><div><h6>3. 开始调用</h6><p>使用标准 OpenAI API 格式调用，或在对话页面直接体验</p></div></div></div>
+</div>
+
+<div class="section-title"><h2>精选模型</h2><p>覆盖主流厂商，一站式接入</p></div>
+<div class="text-center mb-5">
+    {% for m in api_models %}
+    <a href="{% url 'api_model_detail' m.id %}" class="model-tag">{{ m.name }}</a>
+    {% endfor %}
+</div>
+
+<div class="cta-section mb-4">
+    <h3 class="mb-3" style="position:relative;z-index:1">准备开始了吗？</h3>
+    <p class="text-muted mb-4" style="position:relative;z-index:1">打开 AI 对话，即刻体验多模型能力</p>
+    <div class="cta-btn-wrap">
+        <a href="{% url 'chat' %}" class="btn btn-primary btn-lg px-5 cta-btn cta-btn-pulse" style="background:linear-gradient(135deg, #7c4dff, #00e5ff);border:none">立即体验</a>
+        <a href="{% url 'api_docs' %}" class="btn btn-outline-light btn-lg px-5 cta-btn">查看文档</a>
+    </div>
+</div>
+
+<script>
+var particles = document.getElementById('particles');
+for(var i=0; i<30; i++){
+    var p = document.createElement('span');
+    p.style.left = Math.random()*100+'%';
+    p.style.top = Math.random()*100+'%';
+    p.style.animationDelay = Math.random()*8+'s';
+    p.style.width = Math.random()*4+2+'px';
+    p.style.height = p.style.width;
+    particles.appendChild(p);
+}
+
+var slides = [
+    {img:"/static/imges/chat.png",      label:"AI 智能对话",  desc:"接入 20+ 大语言模型，深度思考、多轮会话、流式输出"},
+    {img:"/static/imges/models.png",    label:"模型广场",     desc:"可视化浏览所有模型，按厂商/计费/能力标签筛选"},
+    {img:"/static/imges/chatbox-1.png", label:"一键启用模型", desc:"选择模型自动加载配置，无需手动填写参数"},
+    {img:"/static/imges/chatbox-2.png", label:"第三方接入",   desc:"兼容 OpenAI 格式，ChatBox/NextChat 即插即用"},
+    {img:"/static/imges/promption.png", label:"推广返佣",     desc:"邀请伙伴注册使用，赚取消费返佣"}
+];
+var n = slides.length, deg = 360 / n, radius = 420, ring = document.getElementById('ring'), current = 0;
+for (var i = 0; i < n; i++) {
+    var s = slides[i], card = document.createElement('div');
+    card.className = 'carousel-card';
+    card.style.transform = 'rotateY(' + (i*deg) + 'deg) translateZ(' + radius + 'px)';
+    card.innerHTML = '<img src="'+s.img+'" alt=""><div class="cc-label">'+s.label+'</div><div class="cc-desc">'+s.desc+'</div>';
+    (function(idx){ card.onclick = function(){ if(idx!==current) go(idx); }; })(i);
+    ring.appendChild(card);
+}
+function go(idx){ current=(idx+n)%n; ring.style.transform='rotateY('+(-current*deg)+'deg)'; }
+go(0); setInterval(function(){ go(current+1); }, 4000);
+
+var tabModels = [
+    {name:'DeepSeek-V4-Pro', calls:2840, tokens:125},
+    {name:'DeepSeek-R1',     calls:2180, tokens:98},
+    {name:'GLM-5',           calls:1650, tokens:72},
+    {name:'Qwen3-235B',      calls:1320, tokens:58},
+    {name:'Kimi-K2.6',       calls:980,  tokens:42}
+];
+var stats = {models:{{ models_count }}, calls:12800, tokens:385, uptime:99.9};
+function animateStat(id, target, suffix){
+    var el = document.getElementById(id), cur = Math.floor(Math.random()*target*0.7), s=suffix||'';
+    var t = setInterval(function(){ cur+=Math.ceil((target-cur)*0.1); if(cur>=target){cur=target;clearInterval(t);} el.textContent=cur+s; }, 50);
+}
+animateStat('statModels', stats.models, '');
+animateStat('statCalls', stats.calls, '+');
+animateStat('statTokens', stats.tokens, 'M');
+animateStat('statUptime', stats.uptime, '%');
+
+function switchTab(idx, btn){
+    document.querySelectorAll('.active-tab').forEach(function(b){b.classList.remove('active-tab')});
+    btn.classList.add('active-tab');
+    var c = document.getElementById('tabContent');
+    if(idx===0){ c.innerHTML='<div class="chart-box"><canvas id="callChart"></canvas></div>'; renderChart(); }
+    else if(idx===1) renderRank(c);
+    else if(idx===2) renderTokens(c);
+}
+function renderChart(){
+    setTimeout(function(){
+        var cv=document.getElementById('callChart'); if(!cv) return;
+        var ctx=cv.getContext('2d'), w=cv.parentElement.clientWidth, h=240;
+        cv.width=w; cv.height=h;
+        var lb=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], d1=[1800,2100,2500,2200,2900,3100,2800], d2=[1200,1500,1800,1600,2100,2400,2200];
+        var mx=3500, pad=40, gw=(w-pad*2)/7;
+        ctx.clearRect(0,0,w,h);
+        [d1,d2].forEach(function(d,i){
+            ctx.beginPath(); ctx.strokeStyle=i===0?'#7c4dff':'#00e5ff'; ctx.lineWidth=2;
+            d.forEach(function(v,j){ var x=pad+j*gw+gw/2,y=h-20-(v/mx)*(h-50); if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y); });
+            ctx.stroke();
+            d.forEach(function(v,j){ var x=pad+j*gw+gw/2,y=h-20-(v/mx)*(h-50); ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle=i===0?'#7c4dff':'#00e5ff';ctx.fill();ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='10px monospace';ctx.fillText(Math.round(v),x-12,y-8); });
+        });
+        ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px monospace';lb.forEach(function(l,i){ctx.fillText(l,pad+i*gw+gw/2-8,h-4)});
+    },50);
+}
+function renderRank(ct){ var s=tabModels.slice().sort(function(a,b){return b.calls-a.calls}),h=''; s.forEach(function(m,i){var cls=i===0?'gold':i===1?'silver':i===2?'bronze':'',pct=Math.round(m.calls/s[0].calls*100);h+='<div class="rank-row"><span class="rank-num '+cls+'">'+(i+1)+'</span><span class="model-name">'+m.name+'</span><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div><span class="bar-val">'+m.calls.toLocaleString()+' 次</span></div>'}); ct.innerHTML=h; }
+function renderTokens(ct){ var h='<div class="token-grid">'; tabModels.forEach(function(m){h+='<div class="rank-row"><span class="model-name">'+m.name+'</span><div class="bar-wrap"><div class="bar-fill" style="width:'+Math.round(m.tokens/tabModels[0].tokens*100)+'%"></div></div><span class="bar-val">'+m.tokens+'M Token</span></div>'}); h+='</div>'; ct.innerHTML=h; }
+switchTab(0, document.querySelector('.btn-sm'));
+</script>
+</div>
+{% endblock %}

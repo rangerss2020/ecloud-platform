@@ -24,8 +24,8 @@
                     {% else %}<span class="badge bg-secondary">{{ t.get_type_display }}</span>
                     {% endif %}
                 </td>
-                <td><strong class="{% if t.amount > 0 %}text-success{% else %}text-danger{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount }}</strong></td>
-                <td>¥{{ t.balance_after }}</td>
+                <td><strong class="{% if t.amount > 0 %}text-success{% else %}text-danger{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount|floatformat:4 }}</strong></td>
+                <td>¥{{ t.balance_after|floatformat:4 }}</td>
                 <td>{{ t.description }}</td>
                 <td>{{ t.created_at|date:"m-d H:i:s" }}</td>
             </tr>

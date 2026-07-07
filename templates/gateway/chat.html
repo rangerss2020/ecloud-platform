@@ -10,7 +10,10 @@
                     <select name="model" class="form-select" onchange="this.form.submit()">
                         <option value="">-- 选择模型 --</option>
                         {% for m in chat_models %}
-                        <option value="{{ m.id }}" {% if selected_model and selected_model.id == m.id %}selected{% endif %}>
+                        <option value="{{ m.id }}" data-capabilities="{{ m.capabilities.all|join:', ' }}" data-task-type="{{ m.task_type }}"
+                            data-resolutions="{{ m.resolution_options|safe }}"
+                            data-durations="{{ m.duration_options|safe }}"
+                            {% if selected_model and selected_model.id == m.id %}selected{% endif %}>
                             {{ m.name }}
                         </option>
                         {% endfor %}
@@ -19,9 +22,40 @@
                 {% if selected_model %}
                 <div class="mt-3 small" style="color:var(--text-secondary)">
                     <div>渠道: <span style="color:var(--accent)">{{ selected_model.channel.name }}</span></div>
+                    <div>类型: {{ selected_model.get_task_type_display }}</div>
                     <div>计费: {{ selected_model.get_bill_type_display }}</div>
                     {% if selected_model.bill_type != 'free' %}
                     <div>单价: <span style="color:var(--warning)">¥{{ selected_model.price }}</span></div>
+                    {% endif %}
+                    {% if selected_model.capabilities.exists %}
+                    <div class="mt-2">
+                        {% for cap in selected_model.capabilities.all %}
+                        <span class="badge bg-secondary me-1">{{ cap.name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if selected_model.task_type == 'video' and selected_model.duration_options %}
+                    <div class="mt-2">
+                        <label class="form-label small mb-1">时长</label>
+                        <select id="videoDuration" class="form-select form-select-sm" onchange="updatePrice()">
+                            {% for d in selected_model.duration_options %}
+                            <option value="{{ d.seconds }}">{{ d.label }} (x{{ d.multiplier }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    {% if selected_model.task_type == 'video' and selected_model.resolution_options %}
+                    <div class="mt-2">
+                        <label class="form-label small mb-1">分辨率</label>
+                        <select id="videoRatio" class="form-select form-select-sm" onchange="updatePrice()">
+                            {% for r in selected_model.resolution_options %}
+                            <option value="{{ r.ratio }}">{{ r.label }} (x{{ r.multiplier }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    {% if selected_model.task_type == 'video' %}
+                    <div class="mt-2 small" id="estPrice" style="color:var(--warning)"></div>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -36,7 +70,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-chat-dots"></i> {% if selected_model %}{{ selected_model.name }}{% else %}AI 对话{% endif %}</span>
-                <span class="small" style="color:var(--text-dim)">余额: ¥{{ user.balance }}</span>
+                <span class="small" style="color:var(--text-dim)">余额: ¥{{ user.balance|floatformat:4 }}</span>
             </div>
             <div class="card-body" style="min-height:450px;max-height:550px;overflow-y:auto" id="chatBox">
                 {% if history %}
@@ -45,9 +79,18 @@
                     <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px">
                         {% if msg.role == 'user' %}<i class="bi bi-person"></i> 你{% else %}<i class="bi bi-robot"></i> {{ selected_model.name|default:'AI' }}{% endif %}
                     </div>
+                    {% if msg.type == 'video' %}
+                    <div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(124,77,255,0.08);border:1px solid rgba(124,77,255,0.15)" id="videoMsg_{{ msg.video_task_id }}">
+                        <div class="video-progress">
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                            <span class="video-status-text">视频生成中...</span>
+                        </div>
+                    </div>
+                    {% else %}
                     <div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;{% if msg.role == 'user' %}background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15){% else %}background:rgba(124,77,255,0.08);border:1px solid rgba(124,77,255,0.15){% endif %}">
                         <pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)">{{ msg.content }}</pre>
                     </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}
@@ -58,10 +101,24 @@
                 {% endif %}
             </div>
             <div class="card-footer" style="border-top:1px solid rgba(0,229,255,0.08)">
+                <div id="uploadPreview" class="d-flex flex-wrap gap-2 mb-2"></div>
                 <form onsubmit="sendMessage(event)">
                     {% csrf_token %}
                     <input type="hidden" name="model_id" id="chatModelId" value="{{ selected_model.id|default:'' }}">
                     <div class="input-group">
+                        {% if selected_model.capabilities.exists %}
+                        <div class="btn-group me-1" id="uploadButtons">
+                            {% for cap in selected_model.capabilities.all %}
+                            {% if cap.code == 'image_input' %}
+                            <label class="btn btn-sm btn-outline-secondary" title="上传图片"><i class="bi bi-image"></i><input type="file" accept="image/*" style="display:none" onchange="handleUpload(this,'image')"></label>
+                            {% elif cap.code == 'video_input' %}
+                            <label class="btn btn-sm btn-outline-secondary" title="上传视频"><i class="bi bi-camera-video"></i><input type="file" accept="video/*" style="display:none" onchange="handleUpload(this,'video')"></label>
+                            {% elif cap.code == 'audio_input' %}
+                            <label class="btn btn-sm btn-outline-secondary" title="上传音频"><i class="bi bi-music-note"></i><input type="file" accept="audio/*" style="display:none" onchange="handleUpload(this,'audio')"></label>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                         <input type="text" id="chatInput" class="form-control" placeholder="输入消息..." autofocus autocomplete="off"
                             {% if not selected_model %}disabled{% endif %}>
                         <button class="btn btn-primary" type="submit" id="chatSendBtn" {% if not selected_model %}disabled{% endif %}>
@@ -80,41 +137,124 @@
 var box = document.getElementById('chatBox');
 box.scrollTop = box.scrollHeight;
 
+var uploadedFiles = {image:[], video:[], audio:[]};
+var mResolutions = {{ selected_model.resolution_options|safe|default:'[]' }};
+var mDurations = {{ selected_model.duration_options|safe|default:'[]' }};
+var mBasePrice = {{ selected_model.price|default:0 }};
+
+function updatePrice() {
+    var el = document.getElementById('estPrice');
+    if (!el) return;
+    var dur = parseInt(document.getElementById('videoDuration')?.value || 11);
+    var ratio = document.getElementById('videoRatio')?.value || '16:9';
+    var dm = 1.0, rm = 1.0;
+    mDurations.forEach(function(d){ if(d.seconds===dur) dm=d.multiplier; });
+    mResolutions.forEach(function(r){ if(r.ratio===ratio) rm=r.multiplier; });
+    var p = (mBasePrice * dm * rm).toFixed(2);
+    el.textContent = '预估: ¥' + p;
+}
+updatePrice();
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[id^="videoMsg_"]').forEach(function(el) {
+        var taskId = el.id.replace('videoMsg_', '');
+        pollVideoTask(taskId, el);
+    });
+});
+
+async function handleUpload(input, type) {
+    var file = input.files[0];
+    if (!file) return;
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    try {
+        var resp = await fetch('/gateway/upload/', {method:'POST', body:fd});
+        var data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        uploadedFiles[type].push(data.url);
+        var tag = document.createElement('span');
+        tag.className = 'badge bg-info';
+        tag.innerHTML = data.name + ' <span onclick="removeUpload(\''+type+'\',\''+data.url+'\',this)" style="cursor:pointer">&times;</span>';
+        document.getElementById('uploadPreview').appendChild(tag);
+    } catch(e) { alert('Upload failed'); }
+    input.value = '';
+}
+
+function removeUpload(type, url, el) {
+    uploadedFiles[type] = uploadedFiles[type].filter(function(u){ return u !== url; });
+    el.parentElement.remove();
+}
+
+function pollVideoTask(taskId, container) {
+    var statusEl = container.querySelector('.video-status-text');
+    var spinner = container.querySelector('.spinner-border');
+    var interval = setInterval(async function() {
+        try {
+            var resp = await fetch('/gateway/chat/video/' + encodeURIComponent(taskId) + '/');
+            var data = await resp.json();
+            if (data.status === 'succeeded' && data.video_url) {
+                clearInterval(interval);
+                if (spinner) spinner.remove();
+                container.innerHTML = '<video controls style="max-width:100%;border-radius:8px" src="/' + data.video_url + '"></video>';
+                box.scrollTop = box.scrollHeight;
+            } else if (data.status === 'failed') {
+                clearInterval(interval);
+                if (spinner) spinner.remove();
+                if (statusEl) statusEl.textContent = '生成失败: ' + (data.error || '未知错误');
+                statusEl.style.color = '#ff1744';
+            } else {
+                if (statusEl) {
+                    var statusMap = {'pending': '排队中...', 'running': '生成中...', 'queued': '排队中...'};
+                    statusEl.textContent = statusMap[data.status] || data.status;
+                }
+            }
+        } catch(e) {
+            clearInterval(interval);
+            if (statusEl) statusEl.textContent = '查询失败';
+        }
+    }, 5000);
+}
+
 async function sendMessage(e) {
     e.preventDefault();
     var input = document.getElementById('chatInput');
     var btn = document.getElementById('chatSendBtn');
     var msg = input.value.trim();
-    if (!msg) return;
+    if (!msg && uploadedFiles.image.length===0) return;
 
     var mid = document.getElementById('chatModelId').value;
     var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var isVideo = document.getElementById('videoDuration') !== null;
 
-    // User message
+    var displayContent = msg || '';
+    if (uploadedFiles.image.length) displayContent += ' [+'+uploadedFiles.image.length+'张图片]';
+    if (uploadedFiles.video.length) displayContent += ' [+'+uploadedFiles.video.length+'个视频]';
+    if (uploadedFiles.audio.length) displayContent += ' [+'+uploadedFiles.audio.length+'个音频]';
+
     var userDiv = document.createElement('div');
     userDiv.className = 'mb-3 text-end';
-    userDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-person"></i> 你</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)">'+escapeHtml(msg)+'</pre></div>';
+    userDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-person"></i> 你</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)">'+escapeHtml(displayContent)+'</pre></div>';
     box.appendChild(userDiv);
     box.scrollTop = box.scrollHeight;
     input.value = '';
     input.disabled = true;
     btn.disabled = true;
 
-    // Thinking bubble with timer
     var thinkDiv = document.createElement('div');
     thinkDiv.className = 'mb-3';
     var thinkId = 'think_'+Date.now();
+    var thinkContentId = 'thinkpre_' + thinkId;
     thinkDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><span class="spinner-border spinner-border-sm me-1"></span> 思考中 <span id="'+thinkId+'">0s</span></div>';
     var thinkBody = document.createElement('div');
-    thinkBody.className = 'd-inline-block p-2 rounded-3 text-start';
-    thinkBody.style.cssText = 'max-width:85%;background:transparent;border:1px dashed rgba(124,77,255,0.2);display:none';
-    thinkBody.innerHTML = '<pre id="thinkContent" style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.8rem;color:var(--text-dim)"></pre>';
+    thinkBody.className = 'd-inline-block rounded-3 text-start';
+    thinkBody.style.cssText = 'max-width:85%;background:rgba(124,77,255,0.04);border:1px solid rgba(124,77,255,0.12);display:none;overflow:hidden';
+    thinkBody.innerHTML = '<div id="thinkHeader_'+thinkId+'" style="padding:6px 12px;font-size:0.75rem;color:var(--text-dim);cursor:pointer;border-bottom:1px solid rgba(124,77,255,0.1);display:none" onclick="document.getElementById(\''+thinkContentId+'\').style.display=document.getElementById(\''+thinkContentId+'\').style.display==\'none\'?\'\':\'none\'">深度思考 <span style="font-size:0.65rem">(click to fold)</span></div><pre id="'+thinkContentId+'" style="margin:0;padding:8px 12px;white-space:pre-wrap;font-family:inherit;font-size:0.78rem;color:var(--text-dim);max-height:200px;overflow-y:auto"></pre>';
     thinkDiv.appendChild(thinkBody);
 
     var aiDiv = document.createElement('div');
     aiDiv.className = 'mb-3';
     aiDiv.style.display = 'none';
-
     box.appendChild(thinkDiv);
     box.appendChild(aiDiv);
     box.scrollTop = box.scrollHeight;
@@ -122,54 +262,128 @@ async function sendMessage(e) {
     var timerEl = document.getElementById(thinkId);
     var startTime = Date.now();
     var timer = setInterval(function(){
-        if (timerEl) {
-            var elapsed = Math.floor((Date.now() - startTime) / 1000);
-            timerEl.textContent = elapsed + 's';
-        }
+        if (timerEl) timerEl.textContent = Math.floor((Date.now()-startTime)/1000) + 's';
     }, 200);
 
     try {
-        var resp = await fetch('/gateway/chat/stream/', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf},
-            body: 'model_id='+encodeURIComponent(mid)+'&message='+encodeURIComponent(msg)
-        });
-        var data = await resp.json();
-        clearInterval(timer);
-        
-        var elapsed = Math.floor((Date.now() - startTime) / 1000);
-        timerEl.innerHTML = elapsed+'s <span style="color:#00e676">完成</span>';
-        thinkDiv.querySelector('.spinner-border').remove();
-
-        // Check for error
-        if (data.error) {
-            aiDiv.style.display = 'block';
-            aiDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-robot"></i> AI</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.2)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:#ff1744">[错误] '+escapeHtml(data.error)+'</pre></div>';
+        var bodyData, fetchHeaders;
+        if (isVideo) {
+            bodyData = JSON.stringify({
+                message: msg,
+                duration: parseInt(document.getElementById('videoDuration')?.value || 11),
+                ratio: document.getElementById('videoRatio')?.value || '16:9',
+                ref_images: uploadedFiles.image,
+                ref_videos: uploadedFiles.video,
+                ref_audio: uploadedFiles.audio,
+            });
+            fetchHeaders = {'X-CSRFToken': csrf, 'Content-Type': 'application/json'};
+            var resp = await fetch('/gateway/chat/stream/', {method:'POST', headers:fetchHeaders, body: bodyData});
+            var data = await resp.json();
+            clearInterval(timer);
+            var elapsed = Math.floor((Date.now()-startTime)/1000);
+            if (data.error) {
+                aiDiv.style.display = 'block';
+                aiDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-robot"></i> AI</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.2)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:#ff1744">[错误] '+escapeHtml(data.error)+'</pre></div>';
+                timerEl.innerHTML = elapsed+'s <span style="color:#ff1744">失败</span>';
+                thinkDiv.querySelector('.spinner-border').remove();
+            } else if (data.type === 'video') {
+                thinkDiv.querySelector('.spinner-border').remove();
+                timerEl.innerHTML = elapsed+'s <span style="color:#00e676">已提交</span>';
+                var videoContainer = document.createElement('div');
+                videoContainer.className = 'd-inline-block p-3 rounded-3 text-start';
+                videoContainer.style.cssText = 'max-width:85%;background:rgba(124,77,255,0.08);border:1px solid rgba(124,77,255,0.15)';
+                videoContainer.id = 'videoMsg_' + data.task_id;
+                videoContainer.innerHTML = '<div class="video-progress"><span class="spinner-border spinner-border-sm me-1"></span><span class="video-status-text">'+escapeHtml(data.content)+'</span></div>';
+                aiDiv.style.display = 'block';
+                aiDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-robot"></i> AI</div>';
+                aiDiv.appendChild(videoContainer);
+                box.scrollTop = box.scrollHeight;
+                pollVideoTask(data.task_id, videoContainer);
+                uploadedFiles = {image:[], video:[], audio:[]};
+                document.getElementById('uploadPreview').innerHTML = '';
+            }
         } else {
-            var content = data.content || '';
-            
-            // Parse think section
-            var thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
-            var thinkText = thinkMatch ? thinkMatch[1].trim() : '';
-            var answerText = thinkMatch ? content.replace(/<think>[\s\S]*?<\/think>/,'').trim() : content;
+            if (uploadedFiles.image.length || uploadedFiles.video.length || uploadedFiles.audio.length) {
+                bodyData = JSON.stringify({model_id: mid, message: msg, ref_images: uploadedFiles.image, ref_videos: uploadedFiles.video, ref_audio: uploadedFiles.audio});
+                fetchHeaders = {'X-CSRFToken': csrf, 'Content-Type': 'application/json'};
+            } else {
+                bodyData = 'model_id='+encodeURIComponent(mid)+'&message='+encodeURIComponent(msg);
+                fetchHeaders = {'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded'};
+            }
+            var resp = await fetch('/gateway/chat/stream/', {method:'POST', headers:fetchHeaders, body: bodyData});
+            var reader = resp.body.getReader();
+            var decoder = new TextDecoder();
+            var fullContent = '';
+            var thinkContent = '';
+            var metadata = {};
+            var buffer = '';
 
-            // Show think if exists
-            if (thinkText) {
-                document.getElementById('thinkContent').textContent = thinkText;
-                thinkBody.style.display = 'inline-block';
+            thinkDiv.querySelector('.spinner-border').remove();
+            timerEl.innerHTML = '<span style="color:#00e5ff">生成中</span>';
+            aiDiv.style.display = 'block';
+            var answerBubble = document.createElement('div');
+            answerBubble.className = 'd-inline-block p-3 rounded-3 text-start';
+            answerBubble.style.cssText = 'max-width:85%;background:rgba(124,77,255,0.08);border:1px solid rgba(124,77,255,0.15)';
+            var answerPre = document.createElement('pre');
+            answerPre.style.cssText = 'margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)';
+            answerBubble.appendChild(answerPre);
+            aiDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-robot"></i> AI</div>';
+            aiDiv.appendChild(answerBubble);
+
+            while (true) {
+                var {done, value} = await reader.read();
+                if (done) break;
+                var text = decoder.decode(value, {stream: true});
+                buffer += text;
+                var lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim();
+                    if (!line || !line.startsWith('data: ')) continue;
+                    try {
+                        var d = JSON.parse(line.substring(6));
+                        if (d.t !== undefined) {
+                            thinkContent += d.t;
+                            thinkBody.style.display = 'inline-block';
+                            document.getElementById('thinkHeader_'+thinkId).style.display = '';
+                            var tc = document.getElementById(thinkContentId);
+                            tc.textContent = thinkContent;
+                            tc.scrollTop = tc.scrollHeight;
+                            box.scrollTop = box.scrollHeight;
+                        } else if (d.c !== undefined) {
+                            fullContent += d.c;
+                            answerPre.textContent = fullContent;
+                            box.scrollTop = box.scrollHeight;
+                        } else if (d.d !== undefined) {
+                            metadata = d;
+                        } else if (d.e) {
+                            answerPre.textContent = '[Error] ' + d.e;
+                            answerPre.style.color = '#ff1744';
+                        }
+                    } catch(e) {}
+                }
             }
 
-            // Show answer
-            aiDiv.style.display = 'block';
-            aiDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:3px"><i class="bi bi-robot"></i> AI</div><div class="d-inline-block p-3 rounded-3 text-start" style="max-width:85%;background:rgba(124,77,255,0.08);border:1px solid rgba(124,77,255,0.15)"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)">'+escapeHtml(answerText)+'</pre></div>';
+            clearInterval(timer);
+            var elapsed = Math.floor((Date.now()-startTime)/1000);
+            var footer = '';
+            if (metadata.d) {
+                var sec = (metadata.d / 1000).toFixed(1);
+                footer += '<div style="font-size:0.65rem;color:var(--text-dim);margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid rgba(124,77,255,0.1)">Latency: ' + sec + 's';
+                if (metadata.pt > 0 || metadata.ct > 0) footer += ' | In: ' + (metadata.pt||0) + ' tokens | Out: ' + (metadata.ct||0) + ' tokens';
+                footer += '</div>';
+            }
+            answerBubble.innerHTML = '<pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9rem;color:var(--text-primary)">'+escapeHtml(fullContent)+'</pre>' + footer;
+            timerEl.innerHTML = elapsed+'s <span style="color:#00e676">Done</span>';
+            uploadedFiles = {image:[], video:[], audio:[]};
+            document.getElementById('uploadPreview').innerHTML = '';
         }
         box.scrollTop = box.scrollHeight;
     } catch(e) {
         clearInterval(timer);
-        timerEl.innerHTML = '<span style="color:#ff1744">失败</span>';
+        timerEl.innerHTML = '<span style="color:#ff1744">Failed</span>';
         thinkDiv.querySelector('.spinner-border').remove();
     }
-
     input.disabled = false;
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-send"></i>';

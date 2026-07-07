@@ -1,7 +1,10 @@
-from billing.models import SystemConfig
+from django.conf import settings
+from apimodels.models import SiteConfig
 
 
 def platform_settings(request):
     return {
-        'PLATFORM_NAME': SystemConfig.get('site_name', 'ECloud API平台'),
+        'PLATFORM_NAME': SiteConfig.get('site_name', 'Seedance AI 平台'),
+        'ICP': SiteConfig.get('icp', ''),
+        'FOOTER_TEXT': SiteConfig.get('footer_text', ''),
     }

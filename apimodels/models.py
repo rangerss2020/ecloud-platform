@@ -2,6 +2,41 @@ from django.db import models
 from django.utils import timezone
 
 
+class SiteConfig(models.Model):
+    key = models.CharField(max_length=50, unique=True, verbose_name='配置键')
+    value = models.TextField(blank=True, verbose_name='配置值')
+    description = models.CharField(max_length=200, blank=True, verbose_name='说明')
+
+    class Meta:
+        db_table = 'site_config'
+        verbose_name = '站点配置'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.key
+
+    @classmethod
+    def get(cls, key, default=''):
+        obj = cls.objects.filter(key=key).first()
+        return obj.value if obj else default
+
+
+class Capability(models.Model):
+    code = models.CharField(max_length=50, unique=True, verbose_name='能力编码')
+    name = models.CharField(max_length=50, verbose_name='能力名称')
+    icon = models.CharField(max_length=10, default='', verbose_name='图标')
+    sort_order = models.IntegerField(default=0, verbose_name='排序')
+
+    class Meta:
+        db_table = 'capabilities'
+        verbose_name = '模型能力'
+        verbose_name_plural = verbose_name
+        ordering = ['sort_order']
+
+    def __str__(self):
+        return self.name
+
+
 class Channel(models.Model):
     STATUS_CHOICES = (
         ('enabled', '启用'),
@@ -56,6 +91,10 @@ class ApiModel(models.Model):
         ('per_1k', '千tokens (K)'),
         ('per_1m', '百万tokens (M)'),
     )
+    TASK_TYPE_CHOICES = (
+        ('chat', '对话'),
+        ('video', '视频生成'),
+    )
 
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE, related_name='api_models', verbose_name='所属渠道')
     name = models.CharField(max_length=100, verbose_name='模型名称')
@@ -64,10 +103,14 @@ class ApiModel(models.Model):
     description = models.TextField(blank=True, verbose_name='描述')
     servlet_path = models.CharField(max_length=255, verbose_name='接口路径')
     http_method = models.CharField(max_length=10, choices=METHOD_CHOICES, default='POST', verbose_name='请求方法')
+    task_type = models.CharField(max_length=10, choices=TASK_TYPE_CHOICES, default='chat', verbose_name='任务类型')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='enabled', verbose_name='状态')
     bill_type = models.CharField(max_length=10, choices=BILL_TYPE_CHOICES, default='per_call', verbose_name='计费方式')
     price = models.DecimalField(max_digits=10, decimal_places=4, default=0, verbose_name='单价(元)')
     unit_type = models.CharField(max_length=10, choices=UNIT_CHOICES, default='', blank=True, verbose_name='计量单位')
+    capabilities = models.ManyToManyField(Capability, blank=True, verbose_name='模型能力')
+    resolution_options = models.JSONField(default=list, blank=True, verbose_name='分辨率定价')
+    duration_options = models.JSONField(default=list, blank=True, verbose_name='时长定价')
     sort_order = models.IntegerField(default=0, verbose_name='排序')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')

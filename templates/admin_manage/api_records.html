@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}API调用记录{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0"><i class="bi bi-bar-chart-line"></i> 全平台 API 调用记录</h4>
+    <form method="get" class="d-flex gap-1 align-items-center flex-wrap" style="font-size:0.8rem">
+        <input type="date" name="from" value="{{ date_from }}" class="form-control form-control-sm" style="width:130px">
+        <span style="color:var(--text-dim)">~</span>
+        <input type="date" name="to" value="{{ date_to }}" class="form-control form-control-sm" style="width:130px">
+        <select name="fm" class="form-select form-select-sm" style="width:auto;max-width:160px">
+            <option value="">全部模型</option>
+            {% for m in all_models %}
+            <option value="{{ m.code }}" {% if filter_model == m.code %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+        </select>
+        <input name="q" class="form-control form-control-sm" placeholder="用户名..." value="{{ search }}" style="width:110px">
+        <button type="submit" class="btn btn-sm btn-primary">查询</button>
+        {% if filter_model or date_from or date_to or search %}<a href="?" class="btn btn-sm btn-outline-secondary">清除</a>{% endif %}
+    </form>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>用户</th><th>模型</th><th>Token(I+O)</th><th>状态</th><th>费用</th><th>耗时</th><th>时间</th></tr></thead>
+            <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.user.username }}</td>
+                <td>{{ r.api_model.name|default:'-' }}</td>
+                <td><span style="font-size:0.78rem;color:var(--text-dim)">{% if r.prompt_tokens or r.completion_tokens %}{{ r.prompt_tokens }}+{{ r.completion_tokens }}{% else %}-{% endif %}</span></td>
+                <td><span class="badge {% if r.response_state == 'OK' %}bg-success{% else %}bg-danger{% endif %}">{{ r.response_state }}</span></td>
+                <td>¥{{ r.cost }}</td>
+                <td>{{ r.duration_ms }}ms</td>
+                <td>{{ r.created_at|date:"m-d H:i:s" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">暂无调用记录</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include 'pagination.html' %}
+{% endblock %}
